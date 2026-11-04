@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Quote Finalisation</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="polish.css">
+</head>
+<body>
+    <main class="quote-page">
+        <div id="connectionBanner" class="connection-banner is-hidden" role="status" aria-live="polite"></div>
+
+        <header class="report-header">
+            <div class="brand-lockup" aria-label="MCG Computer Australia">
+                <span class="brand-mark">MCG</span>
+                <span class="brand-name">Computer Australia</span>
+            </div>
+            <div class="heading-copy">
+                <span class="page-eyebrow">FINAL REVIEW</span>
+                <h1>Quote Finalisation</h1>
+            </div>
+            <button id="backToProposal" type="button" class="secondary-button workflow-back-button header-back-button" aria-label="Back to Missing Services and Proposals" title="Back to Missing Services and Proposals"><span aria-hidden="true">←</span> Back</button>
+        </header>
+
+        <nav class="created-work-shortcut" aria-label="Created outputs"><a id="createdWorkShortcut" href="#" target="_blank" rel="noopener" aria-disabled="true">View Created Work <span aria-hidden="true">↗</span></a></nav>
+
+        <section id="initialLoadingState" class="loading-skeleton" role="status" aria-live="polite" aria-label="Loading quote details">
+            <span class="sr-only">Loading transferred quote details.</span>
+            <div class="skeleton-card-row" aria-hidden="true">
+                <span class="skeleton-block"></span><span class="skeleton-block"></span><span class="skeleton-block"></span>
+            </div>
+            <div class="skeleton-table" aria-hidden="true">
+                <span class="skeleton-line skeleton-line-wide"></span>
+                <span class="skeleton-line"></span>
+                <span class="skeleton-line skeleton-line-medium"></span>
+                <span class="skeleton-line"></span>
+            </div>
+        </section>
+
+        <section id="emptyState" class="empty-state" hidden>
+            <span class="empty-number">01</span>
+            <div>
+                <h2>No quote selected yet</h2>
+                <p>Start from Missing Services &amp; Proposals or Existing Services to prepare a quote package.</p>
+            </div>
+        </section>
+
+        <div id="quoteContent" hidden>
+            <section class="customer-context-bar" aria-label="Selected customer">
+                <div>
+                    <span class="customer-context-label">Customer</span>
+                    <strong id="stickyCustomerName">—</strong>
+                </div>
+                <span id="stickyPhaseSummary" class="customer-context-meta">Preparing quote…</span>
+            </section>
+
+            <section id="presentationPanel" class="action-panel presentation-panel" aria-labelledby="presentationTitle">
+                <div>
+                    <span class="eyebrow">Customer presentation</span>
+                    <strong id="presentationTitle">Create from the Zoho Show template</strong>
+                    <p id="presentationStatus" class="quote-status" aria-live="polite">Checking the four customer images…</p>
+                </div>
+                <div class="presentation-actions">
+                    <fieldset class="presentation-price-options" aria-label="Presentation prices">
+                        <legend>Presentation prices</legend>
+                        <label><input type="radio" name="presentationPrices" value="hide" checked><span>Without prices</span></label>
+                        <label><input type="radio" name="presentationPrices" value="show"><span>With prices</span></label>
+                    </fieldset>
+                    <button id="createPresentation" type="button" class="primary-button presentation-button" disabled>Create &amp; Open in Zoho Show</button>
+                </div>
+            </section>
+
+            <div id="createdWorkNotice" class="created-work-notice" role="status" aria-live="polite" hidden>
+                <span id="createdWorkNoticeText"></span>
+                <button id="retryCreatedWork" type="button" class="small-button" hidden>Retry saving entry</button>
+            </div>
+
+            <section class="details-panel">
+                <div class="panel-heading">
+                    <span class="section-number">01</span>
+                    <div>
+                        <h2>Quote details</h2>
+                        <p>Customer and phase are transferred from Missing Services &amp; Proposals.</p>
+                    </div>
+                </div>
+
+                <div class="details-grid">
+                    <label class="field">
+                        <span>Customer</span>
+                        <input id="customerName" type="text" readonly>
+                    </label>
+
+                    <div class="field customer-id-field">
+                        <span>Customer ID</span>
+                        <div class="inline-control">
+                            <input id="customerId" type="text" value="Resolving…" readonly>
+                            <button id="retryCustomerLookup" type="button" class="small-button" hidden>Retry</button>
+                        </div>
+                        <small id="customerIdHelp">Resolving the Zoho Books customer through the CRM Account ID.</small>
+                    </div>
+
+                    <label class="field">
+                        <span>Phases transferred</span>
+                        <input id="phaseCount" type="text" readonly>
+                    </label>
+
+                    <label class="field">
+                        <span>Salesperson name <small>Optional</small></span>
+                        <input id="salespersonName" type="text" placeholder="Enter salesperson name">
+                    </label>
+
+                </div>
+            </section>
+
+            <section id="quoteModePanel" class="mode-panel">
+                <div>
+                    <span class="eyebrow">Quote packaging mode</span>
+                    <strong>Choose how Zoho Books drafts are created</strong>
+                </div>
+                <div class="mode-options" role="radiogroup" aria-label="Quote packaging mode">
+                    <label><input id="separateMode" type="radio" name="quoteMode" value="separate" checked> <span><strong>Separate mode</strong><small>Existing-services package separately; proposal phases separately.</small></span></label>
+                    <label><input id="combinedMode" type="radio" name="quoteMode" value="combined"> <span><strong>Combined mode</strong><small>One draft with existing services, hardware, delivery, discount and selected phases.</small></span></label>
+                </div>
+            </section>
+
+            <section id="itemMappingPanel" class="mapping-panel" hidden aria-hidden="true">
+                <div><strong id="itemMappingTitle">Map Zoho Books item</strong><small>Search by item name, SKU or Item ID.</small></div>
+                <div class="mapping-search-row">
+                    <input id="itemMappingSearch" type="search" placeholder="Item name, SKU or Item ID">
+                    <button id="itemMappingSearchButton" type="button" class="small-button">Search Books</button>
+                    <button id="itemMappingCloseButton" type="button" class="small-button">Close</button>
+                </div>
+                <p id="itemMappingStatus" class="quote-status" aria-live="polite"></p>
+                <div id="itemMappingResults" class="mapping-results"></div>
+            </section>
+
+            <section id="existingPackagePanel" class="phases-panel">
+                <div class="panel-heading">
+                    <span class="section-number">02</span>
+                    <div><h2>Existing-services package</h2><p>Checked current services, hardware, delivery and discount from the previous page.</p></div>
+                </div>
+                <div id="existingPackageSummary" class="summary-grid phase-summary-grid"></div>
+                <div class="table-scroll">
+                    <table class="quote-table"><thead><tr><th>Source</th><th>Description</th><th>Books Item ID</th><th>Unit price</th><th>Quantity</th><th>Total</th></tr></thead><tbody id="existingPackageBody"></tbody></table>
+                </div>
+                <div class="phase-action">
+                    <div><p id="existingPackageStatus" class="quote-status" aria-live="polite"></p><a id="openExistingDraft" href="#" target="_blank" rel="noopener" hidden>Open in Zoho Books</a></div>
+                    <button id="createExistingDraft" type="button" class="primary-button" disabled>Create Draft Quote</button>
+                </div>
+            </section>
+
+            <section id="separatePhasesPanel" class="phases-panel">
+                <div class="panel-heading">
+                    <span class="section-number">03</span>
+                    <div>
+                        <h2>All phase drafts</h2>
+                        <p>Review every phase below. You can create one phase or create all ready phases in one run.</p>
+                    </div>
+                </div>
+                <div id="phaseList" class="phase-list"></div>
+            </section>
+
+            <section id="separateBulkPanel" class="action-panel bulk-action-panel">
+                <div>
+                    <span class="eyebrow">Create in Zoho Books</span>
+                    <p id="bulkQuoteStatus" class="quote-status" aria-live="polite">Checking all phases…</p>
+                </div>
+                <button id="createAllDraftQuotes" type="button" class="primary-button" disabled>Create All Draft Quotes</button>
+            </section>
+
+            <section id="combinedPanel" class="phases-panel" hidden>
+                <div class="panel-heading">
+                    <span class="section-number">03</span>
+                    <div><h2>Combined Zoho Books draft</h2><p>Select which proposal phases to combine with the existing-services package.</p></div>
+                </div>
+                <div id="combinedPhaseOptions" class="combined-phase-options"></div>
+                <label class="field phase-reference-field"><span>Combined reference no.</span><input id="combinedReference" type="text" maxlength="100"></label>
+                <div class="phase-action">
+                    <div><p id="combinedStatus" class="quote-status" aria-live="polite"></p><a id="openCombinedDraft" href="#" target="_blank" rel="noopener" hidden>Open in Zoho Books</a></div>
+                    <button id="createCombinedDraft" type="button" class="primary-button" disabled>Create Combined Draft Quote</button>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script src="https://static.zohocdn.com/creator/widgets/version/2.0/widgetsdk-min.js"></script>
+    <script src="workspace.js"></script>
+    <script src="presentation-workspace.js"></script>
+    <script src="created-work.js"></script>
+    <script src="created-work-link.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

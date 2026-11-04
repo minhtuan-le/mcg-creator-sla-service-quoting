@@ -1,0 +1,1 @@
+Install this widget over Quote Finalisation in RIR Development. It records new presentations and draft quotes in Created_Work, shows quote numbers returned by Books, and reserves tabs before asynchronous creation. If Chrome blocks an automatic tab, the quote card has its Books link.

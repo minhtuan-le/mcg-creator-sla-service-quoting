@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Client Service &amp; Quotation</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <main class="sla-page">
+        <div id="connectionBanner" class="connection-banner is-loading" role="status" aria-live="polite">
+            Connecting to Zoho CRM and Analytics…
+        </div>
+
+        <header class="sla-header">
+            <div class="sla-brand-lockup" aria-label="MCG Computer Australia">
+                <span class="sla-brand-mark">MCG</span>
+                <span class="sla-brand-name">Computer Australia</span>
+            </div>
+            <div class="sla-heading-copy">
+                <h1>Client Service &amp; Quotation</h1>
+            </div>
+            <span class="sla-badge">Quote preparation</span>
+        </header>
+
+        <section class="sla-filters sticky-customer-context" aria-label="SLA filters">
+            <div class="sla-field">
+                <label for="slaTypeFilter">SLA Type</label>
+                <select id="slaTypeFilter" disabled>
+                    <option value="">All SLA types</option>
+                </select>
+            </div>
+
+            <div class="sla-field">
+                <label for="customerFilter">Customer</label>
+                <select id="customerFilter" disabled>
+                    <option value="">Select a customer</option>
+                </select>
+            </div>
+
+            <div class="sticky-forward-action">
+                <button id="generateProposal" type="button" class="create-quote-btn" disabled>Build Proposal</button>
+            </div>
+        </section>
+
+        <section class="sla-summary-grid" aria-label="Customer SLA summary">
+            <article class="sla-summary-card">
+                <span class="sla-summary-label">Existing Services</span>
+                <strong id="activeServicesValue" class="sla-summary-value">—</strong>
+                <span id="activeServicesMeta" class="sla-summary-meta">Select a customer</span>
+            </article>
+
+            <article class="sla-summary-card">
+                <span class="sla-summary-label">Total Licences</span>
+                <strong id="totalLicencesValue" class="sla-summary-value">—</strong>
+                <span class="sla-summary-meta">Across existing services</span>
+            </article>
+
+            <article class="sla-summary-card">
+                <span class="sla-summary-label">Monthly Cost</span>
+                <strong id="monthlyCostValue" class="sla-summary-value">—</strong>
+                <span class="sla-summary-meta">Current recurring monthly value</span>
+            </article>
+
+            <article class="sla-summary-card">
+                <span class="sla-summary-label">Next Renewal</span>
+                <strong id="nextRenewalValue" class="sla-summary-value sla-summary-value-date">—</strong>
+                <span class="sla-summary-meta">Earliest upcoming invoice date</span>
+            </article>
+        </section>
+
+        <section class="proposal-panel" aria-label="Temporary quote preparation">
+            <div class="proposal-panel-heading">
+                <div>
+                    <h2>Proposal selection</h2>
+                    <p>Enter a Phase to select a service. Your customer workspace is kept for 7 days.</p>
+                </div>
+                <button id="clearQuoteInputs" type="button" class="proposal-clear-btn" disabled>Clear quote inputs</button>
+            </div>
+            <div class="proposal-stats">
+                <div><span>Selected services</span><strong id="proposalSelectedValue">0</strong></div>
+                <div><span>Phases</span><strong id="proposalPhasesValue">—</strong></div>
+                <div><span>Monthly quote</span><strong id="proposalMonthlyValue">$0.00</strong></div>
+                <div><span>Setup total</span><strong id="proposalSetupValue">$0.00</strong></div>
+            </div>
+            <div id="phaseSummary" class="phase-summary" aria-live="polite">
+                <span class="phase-summary-empty">No services selected for quoting.</span>
+            </div>
+            <div class="quote-action-bar">
+                <div class="quote-phase-field">
+                    <label for="quotePhase">Preview phase</label>
+                    <select id="quotePhase" disabled>
+                        <option value="">Select a phase</option>
+                    </select>
+                </div>
+                <p id="quoteActionStatus" class="quote-action-status" aria-live="polite">Select services by entering a Phase.</p>
+            </div>
+            <div id="quotePreview" class="quote-preview" hidden>
+                <div class="quote-preview-heading">
+                    <h3>Phase proposal preview</h3>
+                    <span id="quotePreviewMeta"></span>
+                </div>
+                <div class="quote-preview-table-wrap">
+                    <table class="quote-preview-table">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Description</th>
+                                <th>Item ID</th>
+                                <th>Quantity</th>
+                                <th>Unit Price</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="quotePreviewBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section class="sla-toolbar" aria-label="Service view controls">
+            <div class="sla-view-toggle" role="group" aria-label="Service status filter">
+                <button type="button" class="sla-toggle-btn is-active" data-service-filter="all" disabled>
+                    All Services <span id="allServicesCount" class="sla-toggle-count">0</span>
+                </button>
+                <button type="button" class="sla-toggle-btn" data-service-filter="active" disabled>
+                    Existing Services <span id="activeOnlyCount" class="sla-toggle-count">0</span>
+                </button>
+                <button type="button" class="sla-toggle-btn" data-service-filter="inactive" disabled>
+                    Missing Services <span id="inactiveOnlyCount" class="sla-toggle-count">0</span>
+                </button>
+            </div>
+            <p id="tableStatus" class="sla-status" aria-live="polite">Loading customer list…</p>
+        </section>
+
+        <section id="serviceTableRegion" class="sla-table-wrap" aria-label="SLA services" aria-busy="true">
+            <table class="sla-table">
+                <thead>
+                    <tr>
+                        <th class="col-subgroup">Sub Group</th>
+                        <th class="col-service">Service</th>
+                        <th class="col-status">Status</th>
+                        <th class="col-number">License</th>
+                        <th class="col-contracts">Contracts</th>
+                        <th class="col-money">Monthly $</th>
+                        <th class="col-number">Total Licences</th>
+                        <th class="col-phases new-sheet-field">Phase</th>
+                        <th class="col-number new-sheet-field">Qty. Quoting</th>
+                        <th class="col-money new-sheet-field">Custom Price ($/unit)</th>
+                        <th class="col-money new-sheet-field">Custom Setup</th>
+                        <th class="col-money">Standard Price</th>
+                        <th class="col-unit">Unit</th>
+                        <th class="col-invoice">Recurring Invoice ID</th>
+                        <th class="col-date">Next Invoice Date</th>
+                        <th class="col-money new-sheet-field">Monthly Quote</th>
+                    </tr>
+                </thead>
+                <tbody id="servicesBody">
+                    <tr class="skeleton-row" aria-hidden="true"><td colspan="16"><span class="skeleton-line skeleton-line-wide"></span></td></tr>
+                    <tr class="skeleton-row" aria-hidden="true"><td colspan="16"><span class="skeleton-line"></span></td></tr>
+                    <tr class="skeleton-row" aria-hidden="true"><td colspan="16"><span class="skeleton-line skeleton-line-medium"></span></td></tr>
+                    <tr class="skeleton-row" aria-hidden="true"><td colspan="16"><span class="skeleton-line"></span></td></tr>
+                    <tr class="skeleton-row" aria-hidden="true"><td colspan="16"><span class="skeleton-line skeleton-line-medium"></span></td></tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <div id="clearQuoteModal" class="modal-backdrop" hidden>
+        <section class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="clearQuoteTitle" aria-describedby="clearQuoteMessage">
+            <div class="confirm-dialog-icon" aria-hidden="true">!</div>
+            <div class="confirm-dialog-copy">
+                <span class="confirm-dialog-kicker">Reset proposal</span>
+                <h2 id="clearQuoteTitle">Clear temporary quote inputs?</h2>
+                <p id="clearQuoteMessage">This removes the saved phases, quantities, custom prices and item mappings for this customer. Existing service data will not be changed.</p>
+            </div>
+            <div class="confirm-dialog-actions">
+                <button id="cancelClearQuote" type="button" class="confirm-cancel-btn">Keep inputs</button>
+                <button id="confirmClearQuote" type="button" class="confirm-danger-btn">Clear inputs</button>
+            </div>
+        </section>
+    </div>
+
+    <script src="https://static.zohocdn.com/creator/widgets/version/2.0/widgetsdk-min.js"></script>
+    <script src="workspace.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

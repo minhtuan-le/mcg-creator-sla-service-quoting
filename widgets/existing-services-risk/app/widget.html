@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Existing Services &amp; Risk Analysis</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="polish.css">
+</head>
+<body>
+    <main class="report-page">
+        <div id="connectionBanner" class="connection-banner is-loading" role="status" aria-live="polite">
+            Connecting to Zoho Analytics…
+        </div>
+
+        <header class="report-header">
+            <div class="brand-lockup" aria-label="MCG Computer Australia">
+                <span class="brand-mark">MCG</span>
+                <span class="brand-name">Computer Australia</span>
+            </div>
+            <div class="heading-copy">
+                <span class="page-eyebrow">CURRENT COVERAGE</span>
+                <h1>Existing Services &amp; Risk Analysis</h1>
+            </div>
+        </header>
+
+        <nav class="created-work-shortcut" aria-label="Created outputs"><a id="createdWorkShortcut" href="#" target="_blank" rel="noopener" aria-disabled="true">View Created Work <span aria-hidden="true">↗</span></a></nav>
+
+        <section class="control-panel sticky-customer-context" aria-label="Report controls">
+            <div class="field-wrap">
+                <label for="customerFilter">Customer</label>
+                <select id="customerFilter" disabled>
+                    <option value="">Loading customers…</option>
+                </select>
+                <span class="field-help">Choose a customer. Checked services stay in the quote package.</span>
+            </div>
+            <div class="control-actions">
+                <details class="export-menu">
+                    <summary>Export <span aria-hidden="true">⌄</span></summary>
+                    <div class="export-menu-panel">
+                        <fieldset class="export-price-choice">
+                            <legend>Prices in images</legend>
+                            <label><input type="radio" name="existingExportPrices" value="hide" checked> Without prices</label>
+                            <label><input type="radio" name="existingExportPrices" value="show"> With prices</label>
+                        </fieldset>
+                        <div class="export-section">
+                            <strong>Existing services</strong>
+                            <div class="export-section-actions">
+                                <button id="copyPowerPointButton" class="export-menu-item" type="button" disabled>Copy</button>
+                                <button id="downloadPowerPointButton" class="export-menu-item" type="button" disabled>Download</button>
+                            </div>
+                        </div>
+                        <div class="export-section">
+                            <strong>Risk analysis</strong>
+                            <div class="export-section-actions">
+                                <button id="copyRiskButton" class="export-menu-item" type="button" disabled>Copy</button>
+                                <button id="downloadRiskButton" class="export-menu-item" type="button" disabled>Download</button>
+                            </div>
+                        </div>
+                        <a id="downloadPptTemplate" class="export-menu-item export-template-link" href="https://mcgitcomputer.sharepoint.com/:p:/s/Marketing/IQAHyHMqNkB5SZ91whT-t24bAW1mE0ORZEDGWT4-oSdyVHk?e=GEPzz4&amp;download=1" target="_blank" rel="noopener">Download PowerPoint template</a>
+                        <button id="printButton" class="export-menu-item" type="button" disabled>Print / Save PDF</button>
+                    </div>
+                </details>
+                <button id="continueToMissing" class="print-button forward-button" type="button" disabled>Finalize Quote</button>
+            </div>
+        </section>
+
+        <section id="initialLoadingState" class="loading-skeleton" role="status" aria-live="polite" aria-label="Loading existing services">
+            <span class="sr-only">Loading customer and service data.</span>
+            <div class="skeleton-card-row" aria-hidden="true">
+                <span class="skeleton-block"></span><span class="skeleton-block"></span><span class="skeleton-block"></span><span class="skeleton-block"></span>
+            </div>
+            <div class="skeleton-table" aria-hidden="true">
+                <span class="skeleton-line skeleton-line-wide"></span>
+                <span class="skeleton-line"></span>
+                <span class="skeleton-line skeleton-line-medium"></span>
+                <span class="skeleton-line"></span>
+                <span class="skeleton-line skeleton-line-medium"></span>
+            </div>
+        </section>
+
+        <section id="reportContent" class="report-content is-empty" aria-live="polite">
+            <div id="emptyState" class="empty-state" hidden>
+                <div class="empty-icon" aria-hidden="true">◎</div>
+                <h2>Select a customer</h2>
+                <p>The existing-services report and risk analysis will appear here.</p>
+            </div>
+
+            <div id="generatedReport" class="generated-report" hidden>
+                <section class="client-strip">
+                    <div>
+                        <span class="strip-label">Prepared for</span>
+                        <strong id="clientName">—</strong>
+                    </div>
+                    <div class="generated-meta">
+                        <span class="strip-label">Prepared</span>
+                        <strong id="generatedDate">—</strong>
+                    </div>
+                </section>
+
+                <section class="summary-grid" aria-label="Customer service summary">
+                    <article class="summary-card">
+                        <span class="card-icon blue" aria-hidden="true">▦</span>
+                        <div><span>Current services</span><strong id="serviceCount">0</strong></div>
+                    </article>
+                    <article class="summary-card print-hide">
+                        <span class="card-icon teal" aria-hidden="true">#</span>
+                        <div><span>Total licences</span><strong id="licenceCount">0</strong></div>
+                    </article>
+                    <article class="summary-card print-hide">
+                        <span class="card-icon navy" aria-hidden="true">$</span>
+                        <div><span>Monthly cost <small>ex. GST</small></span><strong id="monthlyCost">$0.00</strong></div>
+                    </article>
+                    <article class="summary-card risk-card">
+                        <span class="card-icon coral" aria-hidden="true">!</span>
+                        <div><span>Overall security risk</span><strong id="riskGap">0%</strong></div>
+                    </article>
+                </section>
+
+                <section class="report-grid">
+                    <article class="panel services-panel">
+                        <div class="panel-heading">
+                            <div>
+                                <span class="section-number">01</span>
+                                <h2>Summary of existing services</h2>
+                            </div>
+                            <span id="serviceLineStatus" class="panel-note"></span>
+                        </div>
+                        <div class="table-scroll">
+                            <table class="services-table">
+                                <colgroup>
+                                    <col class="col-include">
+                                    <col class="col-service-type">
+                                    <col class="col-current-service">
+                                    <col class="col-item-id">
+                                    <col class="col-licence-count">
+                                    <col class="col-billing-frequency">
+                                    <col class="col-monthly-cost print-hide">
+                                </colgroup>
+                                <thead>
+                                    <tr>
+                                        <th>Include</th>
+                                        <th>Services</th>
+                                        <th>What you have</th>
+                                        <th>Books Item ID</th>
+                                        <th class="number-col">No. of licences</th>
+                                        <th>Billing frequency</th>
+                                        <th class="money-col print-hide">Monthly cost <span>(ex. GST)</span></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="servicesBody"></tbody>
+                            </table>
+                        </div>
+                        <div class="selected-hardware-block">
+                            <div class="subsection-heading"><strong>Added hardware</strong><small>Drag ⋮⋮ to reorder. Hardware appears first in Quote Finalisation.</small></div>
+                            <div class="table-scroll">
+                                <table class="hardware-table">
+                                    <thead><tr><th>Hardware</th><th>SKU</th><th>Books Item ID</th><th>Unit price</th><th>Quantity</th><th>Total</th><th></th></tr></thead>
+                                    <tbody id="hardwareBody"><tr><td colspan="7" class="table-empty">No hardware added.</td></tr></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="panel risk-panel">
+                        <div class="panel-heading">
+                            <div>
+                                <span class="section-number">02</span>
+                                <h2>Risk analysis</h2>
+                            </div>
+                            <span class="panel-note">Missing service coverage</span>
+                        </div>
+
+                        <div class="risk-overview">
+                            <div class="donut-wrap" aria-label="Overall security risk">
+                                <svg id="riskDonut" class="donut" role="img" aria-label="Security control coverage wheel"
+                                    viewBox="0 0 620 340" preserveAspectRatio="xMidYMid meet"></svg>
+                                <div class="donut-label">
+                                    <strong id="donutPercent">0%</strong>
+                                    <span>overall risk</span>
+                                    <small id="riskHeadline">0 of 15 controls missing</small>
+                                </div>
+                            </div>
+                            <div id="riskWheelLegend" class="risk-wheel-legend" aria-label="Security control coverage legend"></div>
+                            <div class="risk-copy">
+                                <p>Missing service coverage highlights areas to review with the customer.</p>
+                            </div>
+                        </div>
+
+                        <div id="riskBars" class="risk-bars" aria-label="Risk gap by category"></div>
+
+                        <table class="risk-table">
+                            <thead>
+                                <tr><th>Category</th><th>Total</th><th>Missing</th><th>Risk</th></tr>
+                            </thead>
+                            <tbody id="riskBody"></tbody>
+                        </table>
+                    </article>
+                </section>
+
+                <section class="quote-package-panel">
+                    <div class="panel-heading">
+                        <div>
+                            <span class="section-number">03</span>
+                            <h2>Hardware, delivery &amp; discount</h2>
+                        </div>
+                        <span class="panel-note">Included in Quote Finalisation</span>
+                    </div>
+
+                    <div class="hardware-search-row">
+                        <label class="package-field package-field-wide">
+                            <span>Search Zoho Books hardware by item name or SKU</span>
+                            <input id="hardwareSearch" type="search" placeholder="Start typing at least 2 characters">
+                        </label>
+                        <div class="hardware-search-actions">
+                            <button id="searchHardwareButton" class="copy-button" type="button">Search now</button>
+                            <button id="closeHardwareResultsButton" class="copy-button secondary-button" type="button" hidden>Close results</button>
+                        </div>
+                    </div>
+                    <p id="hardwareSearchStatus" class="package-help" aria-live="polite"></p>
+                    <div id="hardwareSearchResults" class="hardware-results"></div>
+
+                    <div class="charges-grid">
+                        <label class="package-field checkbox-field">
+                            <span>Delivery</span>
+                            <span><input id="deliveryIncluded" type="checkbox"> Include delivery</span>
+                        </label>
+                        <label class="package-field">
+                            <span>Delivery Books Item ID</span>
+                            <input id="deliveryItemId" type="text" placeholder="Enter the Books Item ID">
+                        </label>
+                        <label class="package-field">
+                            <span>Delivery charge</span>
+                            <input id="deliveryRate" type="number" min="0" step="0.01" value="29">
+                        </label>
+                        <label class="package-field">
+                            <span>Discount mode</span>
+                            <select id="discountMode"><option value="amount">Dollar amount</option><option value="percent">Percentage</option></select>
+                        </label>
+                        <label class="package-field">
+                            <span>Discount value</span>
+                            <input id="discountValue" type="number" min="0" step="0.01" value="0">
+                        </label>
+                    </div>
+                    <div class="package-summary" aria-label="Quote package totals">
+                        <div><span>Checked services</span><strong id="checkedServicesTotal">$0.00</strong></div>
+                        <div><span>Hardware</span><strong id="hardwareTotal">$0.00</strong></div>
+                        <div><span>Delivery</span><strong id="deliveryTotal">$29.00</strong></div>
+                        <div><span>Discount</span><strong id="discountTotal">−$0.00</strong></div>
+                        <div class="package-grand-total"><span>Package total</span><strong id="packageTotal">$0.00</strong></div>
+                    </div>
+
+                    <div class="package-actions">
+                        <p id="packageStatus" class="package-help" aria-live="polite">Select a customer to prepare the package.</p>
+                    </div>
+                </section>
+
+                <footer class="report-footer">
+                    <span>MCG Computer Australia</span>
+                    <span>Existing Services &amp; Risk Analysis</span>
+                    <span id="footerClient">—</span>
+                </footer>
+            </div>
+        </section>
+    </main>
+
+    <script src="https://static.zohocdn.com/creator/widgets/version/2.0/widgetsdk-min.js"></script>
+    <script src="workspace.js"></script>
+    <script src="slide-export.js"></script>
+    <script src="presentation-workspace.js"></script>
+    <script src="created-work-link.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

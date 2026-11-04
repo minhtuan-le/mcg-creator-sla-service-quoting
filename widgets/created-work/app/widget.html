@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Created Work</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <main class="work-page">
+        <header class="work-header">
+            <div class="brand"><strong>MCG</strong><span>Computer Australia</span></div>
+            <div><span class="eyebrow">WORKSPACE HISTORY</span><h1>Created Work</h1><p>Presentations and draft quotes created for customers.</p></div>
+            <button id="refreshButton" type="button" class="refresh-button">Refresh</button>
+        </header>
+        <section class="work-summary" aria-label="Created work summary">
+            <div><span>Total outputs</span><strong id="totalCount">—</strong></div>
+            <div><span>Presentations</span><strong id="presentationCount">—</strong></div>
+            <div><span>Draft quotes</span><strong id="quoteCount">—</strong></div>
+        </section>
+        <section class="work-panel">
+            <div class="view-switch" role="group" aria-label="Work view">
+                <button id="allWorkView" type="button" class="view-button is-selected" aria-pressed="true">All Work</button>
+                <button id="customerWorkView" type="button" class="view-button" aria-pressed="false">By Customer</button>
+            </div>
+            <div class="toolbar">
+                <label>Search customer or output<input id="searchInput" type="search" placeholder="Customer, phase, creator…"></label>
+                <label>Type<select id="typeFilter"><option value="">All outputs</option><option value="Presentation">Presentations</option><option value="Quote">Draft quotes</option></select></label>
+            </div>
+            <p id="workStatus" role="status" aria-live="polite">Loading Created Work…</p>
+            <div class="work-content">
+                <aside id="customerSidebar" class="customer-sidebar" aria-label="Customers with created work" hidden>
+                    <div class="customer-sidebar-heading">Customers <span id="customerCount">0</span></div>
+                    <div id="customerList" class="customer-list"></div>
+                </aside>
+                <div class="work-results">
+                    <div id="customerHeading" class="customer-heading" hidden><strong id="selectedCustomerName"></strong><span id="selectedCustomerCount"></span></div>
+                    <div class="table-scroll"><table>
+                        <thead><tr><th id="customerColumn">Customer</th><th>Output</th><th>Scope</th><th>Created</th><th>Created by</th><th>Link</th></tr></thead>
+                        <tbody id="workRows"></tbody>
+                    </table></div>
+                </div>
+            </div>
+            <div class="panel-footer"><button id="loadMore" type="button" hidden>Load more</button></div>
+        </section>
+    </main>
+    <script src="https://static.zohocdn.com/creator/widgets/version/2.0/widgetsdk-min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

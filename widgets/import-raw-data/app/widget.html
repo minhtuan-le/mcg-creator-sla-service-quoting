@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Import Raw Data</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <main class="raw-page">
+        <div id="connectionBanner" class="connection-banner is-loading" role="status" aria-live="polite">
+            Connecting to Zoho Analytics…
+        </div>
+
+        <header class="raw-header">
+            <div>
+                <p class="eyebrow">MCG INTERNAL</p>
+                <h1>Import Raw Data</h1>
+                <p class="subtitle">Read-only view of the existing SLA Analytics invoice export.</p>
+            </div>
+            <span class="raw-badge">Internal · Read only</span>
+        </header>
+
+        <section class="summary-grid" aria-label="Raw data summary">
+            <article class="summary-card">
+                <span class="summary-label">Raw Rows</span>
+                <strong id="rawRowCount" class="summary-value">—</strong>
+            </article>
+            <article class="summary-card">
+                <span class="summary-label">Filtered Rows</span>
+                <strong id="filteredRowCount" class="summary-value">—</strong>
+            </article>
+            <article class="summary-card">
+                <span class="summary-label">Status</span>
+                <strong id="statusValue" class="summary-value summary-text">Loading</strong>
+            </article>
+            <article class="summary-card">
+                <span class="summary-label">Loaded</span>
+                <strong id="refreshValue" class="summary-value summary-text">—</strong>
+            </article>
+        </section>
+
+        <section class="raw-filters" aria-label="Raw data filters">
+            <div class="raw-field raw-field-search">
+                <label for="searchFilter">Search</label>
+                <input id="searchFilter" type="search" placeholder="Search any visible raw-data field" disabled>
+            </div>
+
+            <div class="raw-field">
+                <label for="customerFilter">Customer</label>
+                <select id="customerFilter" disabled>
+                    <option value="">All customers</option>
+                </select>
+            </div>
+
+            <div class="raw-field">
+                <label for="slaTypeFilter">SLA Type</label>
+                <select id="slaTypeFilter" disabled>
+                    <option value="">All SLA types</option>
+                </select>
+            </div>
+
+            <div class="raw-field">
+                <label for="serviceFilter">Service</label>
+                <select id="serviceFilter" disabled>
+                    <option value="">All services</option>
+                </select>
+            </div>
+        </section>
+
+        <section class="raw-toolbar" aria-label="Table controls">
+            <p id="tableStatus" class="table-status" aria-live="polite">Loading raw data…</p>
+
+            <div class="pagination-controls">
+                <button id="prevPage" type="button" disabled>Previous</button>
+                <span id="pageInfo">Page —</span>
+                <button id="nextPage" type="button" disabled>Next</button>
+            </div>
+        </section>
+
+        <section class="raw-table-wrap" aria-label="Import Raw Data table">
+            <table class="raw-table">
+                <thead>
+                    <tr>
+                        <th>Group</th>
+                        <th>Customer</th>
+                        <th>Customer ID</th>
+                        <th class="numeric">Average Monthly Charges</th>
+                        <th class="numeric">Quantity</th>
+                        <th>Contracts</th>
+                        <th>SLA Type</th>
+                        <th class="numeric">Item Display Order</th>
+                        <th>Item Display Name</th>
+                        <th class="numeric">SLA Order</th>
+                        <th>Helper Column</th>
+                        <th>Display Group</th>
+                        <th>Sub Group</th>
+                        <th>Recurring Inv ID</th>
+                        <th>Next Invoice Date</th>
+                    </tr>
+                </thead>
+                <tbody id="rawBody">
+                    <tr>
+                        <td colspan="15" class="empty-cell">Loading Analytics data…</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <script src="https://static.zohocdn.com/creator/widgets/version/2.0/widgetsdk-min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

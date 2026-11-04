@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Missing Services &amp; Proposals</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="polish.css">
+</head>
+<body>
+    <main class="missing-page">
+        <div id="connectionBanner" class="connection-banner is-loading" role="status" aria-live="polite">Connecting to Zoho Analytics…</div>
+
+        <header class="report-header">
+            <div class="brand-lockup" aria-label="MCG Computer Australia">
+                <span class="brand-mark">MCG</span><span class="brand-name">Computer Australia</span>
+            </div>
+            <div class="heading-copy">
+                <span class="page-eyebrow">PROPOSAL WORKSPACE</span>
+                <h1>Missing Services &amp; Proposals</h1>
+            </div>
+            <button id="backToExisting" type="button" class="secondary-button workflow-back-button header-back-button" aria-label="Back to Client Service and Quotation" title="Back to Client Service and Quotation"><span aria-hidden="true">←</span> Back</button>
+        </header>
+
+        <nav class="created-work-shortcut" aria-label="Created outputs"><a id="createdWorkShortcut" href="#" target="_blank" rel="noopener" aria-disabled="true">View Created Work <span aria-hidden="true">↗</span></a></nav>
+
+        <section class="control-panel sticky-customer-context" aria-label="Proposal controls">
+            <label class="customer-field" for="customerFilter">
+                <span>Customer</span>
+                <select id="customerFilter" disabled><option value="">Loading customers…</option></select>
+                <small id="proposalGeneratedAt">Your workspace is saved for 7 days.</small>
+            </label>
+            <div class="control-actions">
+                <details class="export-menu">
+                    <summary>Export <span aria-hidden="true">⌄</span></summary>
+                    <div class="export-menu-panel">
+                        <fieldset class="export-price-choice">
+                            <legend>Prices in images</legend>
+                            <label><input type="radio" name="missingExportPrices" value="hide" checked> Without prices</label>
+                            <label><input type="radio" name="missingExportPrices" value="show"> With prices</label>
+                        </fieldset>
+                        <div class="export-section">
+                            <strong>Missing Services</strong>
+                            <div class="export-section-actions">
+                                <button id="copyCategoryButton" type="button" class="export-menu-item" disabled>Copy</button>
+                                <button id="downloadCategoryButton" type="button" class="export-menu-item" disabled>Download</button>
+                            </div>
+                        </div>
+                        <div class="export-section">
+                            <strong>Proposal phases</strong>
+                            <div class="export-section-actions">
+                                <button id="copyPowerPointButton" type="button" class="export-menu-item" disabled>Copy</button>
+                                <button id="downloadPowerPointButton" type="button" class="export-menu-item" disabled>Download</button>
+                            </div>
+                        </div>
+                        <button id="printButton" type="button" class="export-menu-item" disabled>Print / Save PDF</button>
+                    </div>
+                </details>
+                <button id="continueToQuote" type="button" class="primary-button forward-button" disabled>Finalize Quote</button>
+            </div>
+        </section>
+
+        <section id="initialLoadingState" class="loading-skeleton" role="status" aria-live="polite" aria-label="Loading proposal data">
+            <span class="sr-only">Loading customer and service data.</span>
+            <div class="skeleton-card-row" aria-hidden="true">
+                <span class="skeleton-block"></span><span class="skeleton-block"></span><span class="skeleton-block"></span><span class="skeleton-block"></span>
+            </div>
+            <div class="skeleton-table" aria-hidden="true">
+                <span class="skeleton-line skeleton-line-wide"></span>
+                <span class="skeleton-line"></span>
+                <span class="skeleton-line skeleton-line-medium"></span>
+                <span class="skeleton-line"></span>
+                <span class="skeleton-line skeleton-line-medium"></span>
+            </div>
+        </section>
+
+        <section class="summary-grid" aria-label="Proposal summary">
+            <article class="summary-card accent-coral"><span class="summary-label">Selected services</span><strong id="selectedCount">0</strong><span class="summary-meta">Rows with a valid phase</span></article>
+            <article class="summary-card accent-teal"><span class="summary-label">Phases</span><strong id="phaseCount">—</strong><span class="summary-meta">Starting from Phase 1</span></article>
+            <article class="summary-card accent-blue"><span class="summary-label">Monthly quote</span><strong id="monthlyTotal">$0.00</strong><span class="summary-meta">Selected proposal lines</span></article>
+            <article class="summary-card accent-gold"><span class="summary-label">Setup total</span><strong id="setupTotal">$0.00</strong><span class="summary-meta">Once-off setup lines</span></article>
+        </section>
+
+        <section id="emptyState" class="empty-state" hidden>
+            <span class="empty-number">01</span>
+            <div><h2>Select a customer</h2><p>The customer’s inactive and missing services will load here.</p></div>
+        </section>
+
+        <div id="generatedContent" hidden>
+            <section class="report-panel editor-panel">
+                <div class="panel-heading">
+                    <span class="section-number">01</span>
+                    <div><h2>Missing services quote builder</h2><p>Open a group, then enter a phase to include a service. Monthly and setup Item IDs can be typed directly.</p></div>
+                    <div class="group-actions">
+                        <button id="selectedOnlyGroups" type="button" class="secondary-button" aria-pressed="false">Show selected only</button>
+                        <button id="expandGroups" type="button" class="secondary-button">Expand groups</button>
+                        <button id="collapseGroups" type="button" class="secondary-button">Collapse groups</button>
+                    </div>
+                </div>
+
+                <div id="mappingPanel" class="mapping-panel" hidden>
+                    <div>
+                        <strong id="mappingTitle">Map Zoho Books item</strong>
+                        <small>Search by item name, SKU or paste a valid Item ID.</small>
+                    </div>
+                    <div class="mapping-search-row">
+                        <input id="mappingSearch" type="search" placeholder="Item name, SKU or Item ID">
+                        <button id="mappingSearchButton" type="button" class="copy-button">Search Books</button>
+                        <button id="mappingCloseButton" type="button" class="secondary-button">Close</button>
+                    </div>
+                    <p id="mappingStatus" class="quote-status" aria-live="polite"></p>
+                    <div id="mappingResults" class="mapping-results"></div>
+                </div>
+
+                <div class="table-scroll">
+                    <table class="editor-table">
+                        <thead><tr><th>Missing service</th><th>Books Item IDs</th><th>Phase</th><th>Qty. Quoting</th><th>Monthly price</th><th>Setup price</th><th>Monthly total</th></tr></thead>
+                        <tbody id="servicesBody"></tbody>
+                    </table>
+                </div>
+                <p id="editorStatus" class="quote-status" aria-live="polite"></p>
+            </section>
+
+            <section class="report-panel proposal-panel">
+                <div id="proposalContainer" class="proposal-container"></div>
+                <div class="quote-action-bar">
+                    <label for="quotePhase">Open first on phase</label>
+                    <select id="quotePhase" disabled><option value="">Select a phase</option></select>
+                </div>
+                <p id="quoteActionStatus" class="quote-status" aria-live="polite">Enter a phase for at least one service, or continue with an existing-services package.</p>
+            </section>
+
+            <section class="report-panel category-panel">
+                <div class="panel-heading">
+                    <span class="section-number">03</span>
+                    <div><h2>Selected services by category</h2><p>Recommended solutions and calculated proposal values.</p></div>
+                </div>
+                <div class="table-scroll">
+                    <table class="category-table">
+                        <thead><tr><th>Missing Service</th><th>Recommended Solution</th><th>Cost</th><th>Phase</th><th>Qty. Quoting</th><th>Monthly Total</th></tr></thead>
+                        <tbody id="categoryBody"></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script src="https://static.zohocdn.com/creator/widgets/version/2.0/widgetsdk-min.js"></script>
+    <script src="workspace.js"></script>
+    <script src="slide-export.js"></script>
+    <script src="presentation-workspace.js"></script>
+    <script src="created-work-link.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

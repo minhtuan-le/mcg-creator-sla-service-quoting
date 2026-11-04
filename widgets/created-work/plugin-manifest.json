@@ -1,0 +1,6 @@
+{
+  "service": "CREATOR",
+  "cspDomains": {
+    "connect-src": ["https://*.zoho.com", "https://*.zoho.com.au", "https://*.zohopublic.com"]
+  }
+}

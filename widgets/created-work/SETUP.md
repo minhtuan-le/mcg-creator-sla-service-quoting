@@ -1,0 +1,1 @@
+Install this widget on the RIR Development page with link name Created_Works. The form link name remains Created_Work and its report link name remains All_Work. New presentations show With prices or Without prices; new draft quotes show their Books number when returned.
