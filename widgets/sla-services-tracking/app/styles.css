@@ -157,6 +157,23 @@ input {
     color: #98a2b3;
 }
 
+.new-customer-trigger { margin-top: 8px; padding: 4px 0; border: 0; background: none; color: #2563eb; font: inherit; font-weight: 700; cursor: pointer; }
+.new-customer-trigger:disabled { color: #98a2b3; cursor: wait; }
+.new-customer-dialog { width: min(520px, calc(100vw - 28px)); max-height: calc(100vh - 32px); overflow: auto; margin: auto; padding: 26px; border-radius: 14px; background: #fff; box-shadow: 0 24px 70px rgba(19, 34, 65, .25); }
+.new-customer-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.new-customer-head h2 { margin: 4px 0 0; }
+.new-customer-close { border: 0; background: none; font-size: 28px; color: #667085; cursor: pointer; }
+.new-customer-dialog p { color: #475467; line-height: 1.5; }
+.new-customer-dialog form { display: grid; gap: 14px; }
+.new-customer-dialog form label { display: grid; gap: 6px; color: #273442; font-size: 13px; font-weight: 700; }
+.new-customer-dialog form input { width: 100%; min-height: 42px; box-sizing: border-box; padding: 9px 11px; border: 1px solid #ccd2da; border-radius: 8px; font: inherit; }
+.new-customer-dialog form input:focus { outline: 3px solid rgba(65, 105, 225, .12); border-color: #6e94dc; }
+.new-customer-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.new-customer-status { min-height: 20px; margin: 0; font-size: 13px; }
+.new-customer-status.is-error { color: #b42318; }
+.new-customer-status.is-success { color: #067647; }
+@media (max-width: 560px) { .new-customer-pair { grid-template-columns: 1fr; } }
+
 .sla-summary-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(150px, 1fr));

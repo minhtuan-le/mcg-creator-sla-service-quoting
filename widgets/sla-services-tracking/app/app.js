@@ -2,6 +2,7 @@
     "use strict";
 
     const CUSTOM_API_NAME = "get_sla_analytics_data";
+    const CREATE_CUSTOMER_API_NAME = "create_sla_customer";
     const LEGACY_PROPOSAL_TRANSFER_KEY = "mcg_sla_proposal_transfer_v1";
     const LEGACY_QUOTE_TRANSFER_KEY = "mcg_sla_quote_finalisation_transfer_v1";
     const PROPOSAL_QUERY_PARAM = "proposal_data";
@@ -100,6 +101,13 @@
         banner: document.getElementById("connectionBanner"),
         slaType: document.getElementById("slaTypeFilter"),
         customer: document.getElementById("customerFilter"),
+        openNewCustomer: document.getElementById("openNewCustomer"),
+        newCustomerModal: document.getElementById("newCustomerModal"),
+        newCustomerForm: document.getElementById("newCustomerForm"),
+        newCustomerStatus: document.getElementById("newCustomerStatus"),
+        saveNewCustomer: document.getElementById("saveNewCustomer"),
+        cancelNewCustomer: document.getElementById("cancelNewCustomer"),
+        cancelNewCustomerTop: document.getElementById("cancelNewCustomerTop"),
         serviceSearch: document.getElementById("serviceSearch"),
         status: document.getElementById("tableStatus"),
         tableRegion: document.getElementById("serviceTableRegion"),
@@ -396,6 +404,18 @@
         return text(value).toLocaleLowerCase();
     }
 
+    function invoiceCustomerMatches(invoiceName, selectedCustomer) {
+        const selected = text(selectedCustomer);
+        const statusSuffix = selected.match(/^(.*-\s*\d{2})\s+ACCOUNT ON HOLD$/i);
+        const key = function (value) { return normalizeName(value).replace(/&/g, "and").replace(/[^a-z0-9]+/g, ""); };
+        const invoice = key(invoiceName);
+        return Boolean(invoice) && (invoice === key(selected) || Boolean(statusSuffix && invoice === key(statusSuffix[1])));
+    }
+
+    function invoiceCustomerName(row) {
+        return fieldValue(row, ["Customer", "Company", "Company Name", "Customer Name"]);
+    }
+
     function fieldValue(record, names) {
         if (!record) {
             return "";
@@ -585,20 +605,43 @@
     }
 
     function customerHasRecurringInvoice(customerName) {
-        const customerKey = normalizeName(customerName);
         return state.invoiceRows.some(function (row) {
-            return normalizeName(row.Customer) === customerKey;
+            return invoiceCustomerMatches(invoiceCustomerName(row), customerName);
         });
+    }
+
+    function slaTypeCode(value) {
+        const match = text(value).match(/^SLA\s*-\s*(0[1-5])\b/i);
+        return match ? match[1] : "";
+    }
+
+    function customerSlaCode(customerName) {
+        const match = text(customerName).match(/-\s*(0[1-5])\s*$/);
+        return match ? match[1] : "";
     }
 
     function availableCustomerNames() {
         const names = uniqueCrmCustomers(state.customerRows);
-        if (elements.slaType.value !== NO_RECURRING_SLA_FILTER) {
-            return names;
+        const slaType = elements.slaType.value;
+        if (slaType === NO_RECURRING_SLA_FILTER) {
+            return names.filter(function (customerName) {
+                return !customerHasRecurringInvoice(customerName);
+            });
         }
-        return names.filter(function (customerName) {
-            return !customerHasRecurringInvoice(customerName);
-        });
+        const code = slaTypeCode(slaType);
+        if (code) {
+            return names.filter(function (customerName) {
+                return customerSlaCode(customerName) === code;
+            });
+        }
+        return names;
+    }
+
+    function addSavedCustomer(customerRows) {
+        const session = window.MCGQuoteWorkspace && window.MCGQuoteWorkspace.current();
+        if (!session || !session.newCustomer || !text(session.crmAccountId)) return customerRows;
+        if (customerRows.some(function (row) { return normalizeName(crmCustomerName(row)) === normalizeName(session.customerName); })) return customerRows;
+        return customerRows.concat([{ "Account Name": session.customerName, "CRM Account ID": session.crmAccountId }]);
     }
 
     function refreshCustomerOptions() {
@@ -611,23 +654,19 @@
     }
 
     function orderedSlaTypes(rows) {
-        const orderByName = new Map();
-
-        rows.forEach(function (row) {
-            const name = text(row["SLA Type"]);
-            if (!name) {
-                return;
+        const names = new Set(rows.map(function (row) {
+            return text(row["SLA Type"]);
+        }).filter(Boolean));
+        return Array.from(names).sort(function (left, right) {
+            const leftCode = slaTypeCode(left);
+            const rightCode = slaTypeCode(right);
+            if (leftCode && rightCode && leftCode !== rightCode) {
+                return Number(leftCode) - Number(rightCode);
             }
-
-            const order = number(row["SLA Order"], Number.MAX_SAFE_INTEGER);
-            if (!orderByName.has(name) || order < orderByName.get(name)) {
-                orderByName.set(name, order);
+            if (leftCode !== rightCode) {
+                return leftCode ? -1 : 1;
             }
-        });
-
-        return Array.from(orderByName.keys()).sort(function (left, right) {
-            const difference = orderByName.get(left) - orderByName.get(right);
-            return difference || collator.compare(left, right);
+            return collator.compare(left, right);
         });
     }
 
@@ -725,7 +764,7 @@
         }
 
         return state.invoiceRows.filter(function (row) {
-            const customerMatches = normalizeName(row.Customer) === normalizeName(customer);
+            const customerMatches = invoiceCustomerMatches(invoiceCustomerName(row), customer);
             const slaMatches = !slaType || text(row["SLA Type"]) === slaType;
             return customerMatches && slaMatches;
         });
@@ -734,7 +773,7 @@
     function customerInvoiceRows() {
         const customer = elements.customer.value;
         return state.invoiceRows.filter(function (row) {
-            return normalizeName(row.Customer) === normalizeName(customer);
+            return invoiceCustomerMatches(invoiceCustomerName(row), customer);
         });
     }
 
@@ -1286,6 +1325,9 @@
             if (!text(row.setupItemId)) {
                 issues.push(row.service + ": Setup Item ID is missing");
             }
+            if (text(row.itemId) && text(row.itemId) === text(row.setupItemId)) {
+                issues.push(row.service + ": monthly and setup Books Item IDs are the same");
+            }
             if (setupPrice === null) {
                 issues.push(row.service + ": setup price is TBC");
             }
@@ -1828,7 +1870,12 @@
         const input = document.createElement("input");
         input.type = "number";
         input.className = "quote-input";
-        input.value = data.selection[fieldName];
+        // Show the current catalogue price as an editable value. Keep an empty
+        // selection until the user changes it, so later Books syncs still apply.
+        const catalogueValue = fieldName === "customPrice" ? data.standardPrice :
+            fieldName === "customSetup" ? data.standardSetup : null;
+        input.value = text(data.selection[fieldName]) ||
+            (catalogueValue !== null && catalogueValue !== undefined ? String(catalogueValue) : "");
         input.placeholder = options.placeholder || "";
         input.min = options.min;
         input.step = options.step;
@@ -1968,11 +2015,14 @@
         const searchQuery = normalizeName(elements.serviceSearch.value);
 
         if (!customer) {
+            const message = slaType && elements.customer.options.length <= 1
+                ? "No customers match " + slaType + "."
+                : "Select a customer to display services.";
             state.machineCount = null;
-            elements.status.textContent = "Select a customer to display services.";
+            elements.status.textContent = message;
             resetSummary();
             updateProposalSummary([]);
-            showEmpty("Select a customer to display services.");
+            showEmpty(message);
             return;
         }
 
@@ -2042,9 +2092,9 @@
     }
 
     function enableViewer(invoiceRows, catalogueRows, customerRows) {
-        const activeCustomerRows = customerRows.filter(function (row) {
+        const activeCustomerRows = addSavedCustomer(customerRows.filter(function (row) {
             return !crmCustomerIsInactive(row);
-        });
+        }));
         state.invoiceRows = invoiceRows;
         state.catalogueRows = catalogueRows;
         state.customerRows = activeCustomerRows;
@@ -2066,6 +2116,7 @@
 
         elements.slaType.disabled = false;
         elements.customer.disabled = false;
+        elements.openNewCustomer.disabled = false;
         elements.serviceSearch.disabled = false;
         elements.filterButtons.forEach(function (button) {
             button.disabled = false;
@@ -2212,7 +2263,12 @@
     }
 
     elements.slaType.addEventListener("change", function () {
+        const previousCustomer = elements.customer.value;
         refreshCustomerOptions();
+        if (previousCustomer !== elements.customer.value) {
+            state.quoteSelections.clear();
+            state.selectedQuotePhase = "";
+        }
         state.collapsedGroups.clear();
         state.collapseInitialized = false;
         renderRows();
@@ -2234,6 +2290,102 @@
 
         renderRows();
         saveProposalWorkspace();
+    });
+
+    let newCustomerReturnFocus = null;
+    let savingNewCustomer = false;
+
+    function closeNewCustomerDialog() {
+        if (savingNewCustomer) return;
+        elements.newCustomerModal.hidden = true;
+        document.body.classList.remove("has-open-modal");
+        if (newCustomerReturnFocus) newCustomerReturnFocus.focus();
+        newCustomerReturnFocus = null;
+    }
+
+    function openNewCustomerDialog() {
+        newCustomerReturnFocus = document.activeElement;
+        elements.newCustomerForm.reset();
+        elements.newCustomerStatus.textContent = "";
+        elements.newCustomerStatus.className = "new-customer-status";
+        elements.newCustomerModal.hidden = false;
+        document.body.classList.add("has-open-modal");
+        elements.newCustomerForm.elements.companyName.focus();
+    }
+
+    async function submitNewCustomer(event) {
+        event.preventDefault();
+        if (savingNewCustomer) return;
+        const form = elements.newCustomerForm.elements;
+        const request = {
+            companyName: text(form.companyName.value),
+            firstName: text(form.firstName.value),
+            lastName: text(form.lastName.value),
+            email: text(form.email.value),
+            mobile: text(form.mobile.value)
+        };
+        if (state.customerRows.some(function (row) { return normalizeName(crmCustomerName(row)) === normalizeName(request.companyName); })) {
+            elements.newCustomerStatus.textContent = "This company is already in the customer list. Select it instead.";
+            elements.newCustomerStatus.className = "new-customer-status is-error";
+            return;
+        }
+        if (!window.ZOHO || !ZOHO.CREATOR || !ZOHO.CREATOR.DATA) {
+            elements.newCustomerStatus.textContent = "Open this page inside Zoho Creator to create a customer.";
+            elements.newCustomerStatus.className = "new-customer-status is-error";
+            return;
+        }
+        savingNewCustomer = true;
+        elements.saveNewCustomer.disabled = true;
+        elements.cancelNewCustomer.disabled = true;
+        elements.cancelNewCustomerTop.disabled = true;
+        elements.newCustomerStatus.textContent = "Creating CRM company and contact, then importing to Books…";
+        try {
+            const response = await ZOHO.CREATOR.DATA.invokeCustomApi({
+                api_name: CREATE_CUSTOMER_API_NAME,
+                http_method: "POST",
+                payload: { request_data: JSON.stringify(request) }
+            });
+            const result = findFunctionPayload(response, 0);
+            if (!result || result.status !== "success" || !text(result.crmAccountId) || !text(result.booksCustomerId)) {
+                throw new Error(result && result.message || "Customer creation returned an incomplete result. Check CRM and Books before trying again.");
+            }
+            const name = text(result.customerName || request.companyName);
+            state.customerRows.push({ "Account Name": name, "CRM Account ID": String(result.crmAccountId) });
+            elements.slaType.value = "";
+            refreshCustomerOptions();
+            elements.customer.value = name;
+            state.quoteSelections.clear();
+            state.selectedQuotePhase = "";
+            if (window.MCGQuoteWorkspace) {
+                window.MCGQuoteWorkspace.save(name, {
+                    newCustomer: true,
+                    crmAccountId: String(result.crmAccountId),
+                    booksCustomerId: String(result.booksCustomerId),
+                    navigationMode: state.navigationMode
+                });
+            }
+            renderRows();
+            setBanner(name + " is ready for proposal and Books quoting.");
+            elements.newCustomerModal.hidden = true;
+            document.body.classList.remove("has-open-modal");
+            elements.customer.focus();
+        } catch (error) {
+            elements.newCustomerStatus.textContent = error.message || String(error);
+            elements.newCustomerStatus.className = "new-customer-status is-error";
+        } finally {
+            savingNewCustomer = false;
+            elements.saveNewCustomer.disabled = false;
+            elements.cancelNewCustomer.disabled = false;
+            elements.cancelNewCustomerTop.disabled = false;
+        }
+    }
+
+    elements.openNewCustomer.addEventListener("click", openNewCustomerDialog);
+    elements.cancelNewCustomer.addEventListener("click", closeNewCustomerDialog);
+    elements.cancelNewCustomerTop.addEventListener("click", closeNewCustomerDialog);
+    elements.newCustomerForm.addEventListener("submit", submitNewCustomer);
+    elements.newCustomerModal.addEventListener("click", function (event) {
+        if (event.target === elements.newCustomerModal) closeNewCustomerDialog();
     });
 
     let clearDialogReturnFocus = null;
@@ -2271,6 +2423,7 @@
     });
     document.addEventListener("keydown", function (event) {
         if (event.key === "Escape" && !elements.clearQuoteModal.hidden) closeClearQuoteDialog();
+        if (event.key === "Escape" && !elements.newCustomerModal.hidden) closeNewCustomerDialog();
     });
 
     elements.quotePhase.addEventListener("change", function () {

@@ -39,6 +39,7 @@
                 <select id="customerFilter" disabled>
                     <option value="">Select a customer</option>
                 </select>
+                <button id="openNewCustomer" class="new-customer-trigger" type="button" disabled>+ New customer</button>
             </div>
 
             <div class="sticky-forward-action">
@@ -187,6 +188,32 @@
                 <button id="cancelClearQuote" type="button" class="confirm-cancel-btn">Keep inputs</button>
                 <button id="confirmClearQuote" type="button" class="confirm-danger-btn">Clear inputs</button>
             </div>
+        </section>
+    </div>
+
+    <div id="newCustomerModal" class="modal-backdrop" hidden>
+        <section class="new-customer-dialog" role="dialog" aria-modal="true" aria-labelledby="newCustomerTitle" aria-describedby="newCustomerHelp">
+            <div class="new-customer-head">
+                <div><span class="confirm-dialog-kicker">CRM and Books</span><h2 id="newCustomerTitle">New customer</h2></div>
+                <button id="cancelNewCustomerTop" type="button" class="new-customer-close" aria-label="Close">×</button>
+            </div>
+            <p id="newCustomerHelp">Create a CRM company and contact, then import the company as a Books customer for quoting.</p>
+            <form id="newCustomerForm">
+                <label>Company name <input name="companyName" required maxlength="180" autocomplete="organization"></label>
+                <div class="new-customer-pair">
+                    <label>First name <input name="firstName" maxlength="100" autocomplete="given-name"></label>
+                    <label>Last name <input name="lastName" required maxlength="100" autocomplete="family-name"></label>
+                </div>
+                <div class="new-customer-pair">
+                    <label>Email <input name="email" type="email" required maxlength="200" autocomplete="email"></label>
+                    <label>Mobile <input name="mobile" type="tel" required maxlength="35" autocomplete="tel"></label>
+                </div>
+                <p id="newCustomerStatus" class="new-customer-status" role="status" aria-live="polite"></p>
+                <div class="confirm-dialog-actions">
+                    <button id="cancelNewCustomer" type="button" class="confirm-cancel-btn">Cancel</button>
+                    <button id="saveNewCustomer" type="submit" class="create-quote-btn">Create customer</button>
+                </div>
+            </form>
         </section>
     </div>
 
