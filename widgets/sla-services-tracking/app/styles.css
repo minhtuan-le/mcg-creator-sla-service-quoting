@@ -465,8 +465,19 @@ input {
     font-weight: 700;
 }
 
+/* Fixed-height scroll box: adding lines grows this box's content, not the
+   page, so the services table below doesn't get pushed down. */
 .quote-preview-table-wrap {
-    overflow-x: auto;
+    max-height: min(420px, 55vh);
+    overflow: auto;
+    overscroll-behavior: contain;
+}
+
+.quote-preview-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    box-shadow: inset 0 -1px 0 #d9e7e8;
 }
 
 .quote-preview-table {

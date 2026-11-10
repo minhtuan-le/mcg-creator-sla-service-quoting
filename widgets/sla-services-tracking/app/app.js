@@ -1371,8 +1371,24 @@
         }
     }
 
+    // Runs `update`, then scrolls the page by however far `anchor` moved on
+    // screen, so content changing height above it doesn't shift what the user
+    // is looking at or typing into.
+    function keepElementInPlace(anchor, update) {
+        const scroller = document.scrollingElement || document.documentElement;
+        const before = anchor && anchor.isConnected ? anchor.getBoundingClientRect().top : null;
+        update();
+        if (before === null || !anchor.isConnected) return;
+        const delta = anchor.getBoundingClientRect().top - before;
+        if (Math.abs(delta) >= 1) {
+            scroller.scrollTop += delta;
+        }
+    }
+
     function renderQuotePreview() {
         const phase = state.selectedQuotePhase || elements.quotePhase.value;
+        const previewScroll = elements.quotePreviewBody.closest(".quote-preview-table-wrap");
+        const previewScrollTop = previewScroll ? previewScroll.scrollTop : 0;
         elements.quotePreviewBody.replaceChildren();
 
         if (!phase) {
@@ -1425,6 +1441,9 @@
             addPreviewCell(row, previewValue(line.total, money), line.total !== null ? "money" : "is-tbc");
             elements.quotePreviewBody.appendChild(row);
         });
+        if (previewScroll) {
+            previewScroll.scrollTop = previewScrollTop;
+        }
 
         const allSelectedRows = state.latestServiceRows.filter(function (row) {
             return isValidPhase(row.selection.phase);
@@ -1894,7 +1913,11 @@
             row.classList.toggle("is-quote-selected", isValidPhase(data.selection.phase));
             row.classList.toggle("has-quote-input", hasSelectionInput(data.selection));
             setQuoteCell(options.quoteCell, monthlyQuote(data));
-            updateProposalSummary(buildServiceRows(buildActiveServiceMap(matchingInvoiceRows())));
+            // The proposal preview sits above this table and changes height as
+            // lines are added or removed. Keep the row being edited where it is.
+            keepElementInPlace(row, function () {
+                updateProposalSummary(buildServiceRows(buildActiveServiceMap(matchingInvoiceRows())));
+            });
             saveProposalWorkspace();
         });
 
