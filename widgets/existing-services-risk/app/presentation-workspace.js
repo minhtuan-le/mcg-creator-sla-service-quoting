@@ -153,8 +153,9 @@
                     reject(new Error("A presentation image could not be created."));
                     return;
                 }
-                if (blob.size > 512000) {
-                    reject(new Error(filename + " exceeds Zoho Show's 500 KB image limit."));
+                // TEST: 2x images are ~1.1-1.2 MB; checking whether Zoho Show accepts them.
+                if (blob.size > 2097152) {
+                    reject(new Error(filename + " exceeds the 2 MB presentation image limit."));
                     return;
                 }
                 resolve(new File([blob], filename, { type: "image/png" }));
