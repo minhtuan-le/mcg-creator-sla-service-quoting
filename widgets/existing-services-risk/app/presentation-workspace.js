@@ -153,7 +153,8 @@
                     reject(new Error("A presentation image could not be created."));
                     return;
                 }
-                // TEST: 2x images are ~1.1-1.2 MB; checking whether Zoho Show accepts them.
+                // 2x slide images are about 1.1-1.3 MB. Zoho Show accepts them
+                // (tested 12 Nov 2026) and stores them at up to 2048 px wide.
                 if (blob.size > 2097152) {
                     reject(new Error(filename + " exceeds the 2 MB presentation image limit."));
                     return;
