@@ -1,0 +1,356 @@
+map CreateSLADraftQuote(string request_data)
+{
+	result = Map();
+	organizationId = "669587761";
+	try 
+	{
+		requestMap = request_data.toMap();
+		action = ifnull(requestMap.get("action"),"").toString().trim();
+		// The same Custom API powers every widget's searchable Books item mapper.
+		if(action.equalsIgnoreCase("searchItems"))
+		{
+			query = ifnull(requestMap.get("query"),"").toString().trim();
+			if(query.length() < 2)
+			{
+				result.put("status","error");
+				result.put("message","Enter at least two characters to search Zoho Books items.");
+				return result;
+			}
+			itemParams = Map();
+			itemParams.put("organization_id",organizationId);
+			itemParams.put("search_text",query);
+			itemParams.put("filter_by","Status.Active");
+			itemParams.put("sort_column","name");
+			itemParams.put("per_page",50);
+			itemResponse = invokeurl
+			[
+				url :"https://www.zohoapis.com/books/v3/items"
+				type :GET
+				parameters:itemParams
+				connection:"zoho_books_connection"
+			];
+			if(itemResponse.get("code") != 0)
+			{
+				result.put("status","error");
+				result.put("message","Zoho Books item search failed: " + ifnull(itemResponse.get("message"),itemResponse.toString()));
+				return result;
+			}
+			items = List();
+			if(itemResponse.get("items") != null)
+			{
+				for each  booksItem in itemResponse.get("items")
+				{
+					item = Map();
+					item.put("itemId",ifnull(booksItem.get("item_id"),"").toString());
+					item.put("name",ifnull(booksItem.get("name"),"").toString());
+					item.put("sku",ifnull(booksItem.get("sku"),"").toString());
+					item.put("description",ifnull(booksItem.get("description"),"").toString());
+					item.put("rate",ifnull(booksItem.get("rate"),0));
+					item.put("unit",ifnull(booksItem.get("unit"),"").toString());
+					items.add(item);
+				}
+			}
+			result.put("status","success");
+			result.put("message",items.size() + " active Books items matched.");
+			result.put("items",items);
+			return result;
+		}
+		customerName = ifnull(requestMap.get("customerName"),"").toString().trim();
+		crmAccountId = ifnull(requestMap.get("crmAccountId"),"").toString().trim();
+		phase = ifnull(requestMap.get("phase"),"").toString().trim();
+		quoteMode = ifnull(requestMap.get("quoteMode"),"phase").toString().trim();
+		quoteLabel = ifnull(requestMap.get("quoteLabel"),"").toString().trim();
+		referenceNumber = ifnull(requestMap.get("referenceNumber"),"").toString().trim();
+		salespersonName = ifnull(requestMap.get("salespersonName"),"").toString().trim();
+		discountMode = ifnull(requestMap.get("discountMode"),"amount").toString().trim();
+		discountValueText = ifnull(requestMap.get("discountValue"),"0").toString().trim();
+		lookupOnlyText = ifnull(requestMap.get("lookupOnly"),false).toString();
+		lookupOnly = lookupOnlyText.equalsIgnoreCase("true");
+		requestLines = requestMap.get("lineItems");
+		if(customerName == "")
+		{
+			result.put("status","error");
+			result.put("message","Customer name is missing.");
+			return result;
+		}
+		if(!lookupOnly)
+		{
+			if(quoteMode.equalsIgnoreCase("phase") && phase == "" || phase.toDecimal() < 1)
+			{
+				result.put("status","error");
+				result.put("message","Select a valid phase starting from 1.");
+				return result;
+			}
+			if(requestLines == null || requestLines.isEmpty())
+			{
+				result.put("status","error");
+				result.put("message","The selected quote package has no line items.");
+				return result;
+			}
+			// A service and its setup must resolve to different Books items.
+			serviceItemIds = Map();
+			for each  requestLine in requestLines
+			{
+				requestType = ifnull(requestLine.get("type"),"").toString().trim();
+				requestService = ifnull(requestLine.get("service"),"").toString().trim().toLowerCase();
+				requestItemId = ifnull(requestLine.get("itemId"),"").toString().trim();
+				if(requestType.equalsIgnoreCase("Service") && requestService != "" && requestItemId != "")
+				{
+					serviceItemIds.put(requestService,requestItemId);
+				}
+			}
+			for each  requestLine in requestLines
+			{
+				requestType = ifnull(requestLine.get("type"),"").toString().trim();
+				requestService = ifnull(requestLine.get("service"),"").toString().trim().toLowerCase();
+				requestItemId = ifnull(requestLine.get("itemId"),"").toString().trim();
+				if(requestType.equalsIgnoreCase("Setup") && requestService != "" && requestItemId != "" && serviceItemIds.containKey(requestService) && serviceItemIds.get(requestService) == requestItemId)
+				{
+					result.put("status","error");
+					result.put("message","The monthly and setup lines for " + requestService + " use the same Books Item ID. Correct the mapping before creating a quote.");
+					return result;
+				}
+			}
+		}
+		customerId = "";
+		matchType = "";
+		if(crmAccountId != "")
+		{
+			crmParams = Map();
+			crmParams.put("organization_id",organizationId);
+			crmParams.put("zcrm_account_id",crmAccountId);
+			crmResponse = invokeurl
+			[
+				url :"https://www.zohoapis.com/books/v3/contacts"
+				type :GET
+				parameters:crmParams
+				connection:"zoho_books_connection"
+			];
+			if(crmResponse.get("code") == 0 && crmResponse.get("contacts") != null)
+			{
+				contacts = crmResponse.get("contacts");
+				if(!contacts.isEmpty())
+				{
+					customerId = contacts.get(0).get("contact_id").toString();
+					matchType = "crm_account_id";
+				}
+			}
+		}
+		if(customerId == "")
+		{
+			nameParams = Map();
+			nameParams.put("organization_id",organizationId);
+			nameParams.put("contact_name_contains",customerName);
+			nameResponse = invokeurl
+			[
+				url :"https://www.zohoapis.com/books/v3/contacts"
+				type :GET
+				parameters:nameParams
+				connection:"zoho_books_connection"
+			];
+			if(nameResponse.get("code") == 0 && nameResponse.get("contacts") != null)
+			{
+				for each  contact in nameResponse.get("contacts")
+				{
+					if(ifnull(contact.get("contact_name"),"").toString().equalsIgnoreCase(customerName))
+					{
+						customerId = contact.get("contact_id").toString();
+						matchType = "exact_name";
+						break;
+					}
+				}
+			}
+		}
+		if(customerId == "")
+		{
+			result.put("status","error");
+			result.put("message","No exact Zoho Books customer match was found for " + customerName + ". Add CRM Account ID to the Analytics export or correct the customer mapping.");
+			return result;
+		}
+		if(lookupOnly)
+		{
+			result.put("status","success");
+			result.put("message","Zoho Books customer resolved.");
+			result.put("customerId",customerId);
+			result.put("customerName",customerName);
+			result.put("matchType",matchType);
+			return result;
+		}
+		booksLines = List();
+		for each  requestLine in requestLines
+		{
+			lineType = ifnull(requestLine.get("type"),"").toString().trim();
+			lineName = ifnull(requestLine.get("service"),"").toString().trim();
+			lineItemId = ifnull(requestLine.get("itemId"),"").toString().trim();
+			quantityText = ifnull(requestLine.get("quantity"),"").toString().trim();
+			rateText = ifnull(requestLine.get("rate"),"").toString().trim();
+			description = ifnull(requestLine.get("description"),"").toString().trim();
+			edrLine = lineName.equalsIgnoreCase("EDR") || lineName.equalsIgnoreCase("KEDR") || lineName.equalsIgnoreCase("Kaseya/WatchGuard EDR");
+			// EDR and EPDR share an ambiguous SKU in Books. Use the confirmed EDR
+			// item ID for the recurring service, and resolve an EDR-only setup item
+			// by its Books name so an EPDR setup item cannot be used accidentally.
+			if(edrLine && !lineType.equalsIgnoreCase("Setup"))
+			{
+				lineItemId = "1417654000018767777";
+			}
+			else if(edrLine && lineType.equalsIgnoreCase("Setup"))
+			{
+				edrSetupParams = Map();
+				edrSetupParams.put("organization_id",organizationId);
+				edrSetupParams.put("search_text","Kaseya/WatchGuard EDR");
+				edrSetupParams.put("filter_by","Status.Active");
+				edrSetupParams.put("per_page",50);
+				edrSetupResponse = invokeurl
+				[
+					url :"https://www.zohoapis.com/books/v3/items"
+					type :GET
+					parameters:edrSetupParams
+					connection:"zoho_books_connection"
+				];
+				if(edrSetupResponse.get("code") == 0 && edrSetupResponse.get("items") != null)
+				{
+					for each  edrSetupItem in edrSetupResponse.get("items")
+					{
+						edrSetupName = ifnull(edrSetupItem.get("name"),"").toString().toLowerCase();
+						if(edrSetupName.contains("edr") && !edrSetupName.contains("epdr") && edrSetupName.contains("setup"))
+						{
+							lineItemId = ifnull(edrSetupItem.get("item_id"),lineItemId).toString();
+							break;
+						}
+					}
+				}
+			}
+			// Some older saved hardware rows contain "item name + description" in
+			// the description field. Books already prints the item name, so remove
+			// only that repeated leading name and keep the remaining specification.
+			if(lineType.equalsIgnoreCase("hardware") && lineName != "" && description.startsWith(lineName))
+			{
+				description = description.subString(lineName.length(),description.length());
+				description = description.trim();
+			}
+			if(lineItemId == "" || quantityText == "" || rateText == "")
+			{
+				result.put("status","error");
+				result.put("message","A quote line is missing its Books Item ID, quantity or price. Complete the Quote Finalisation table and try again.");
+				return result;
+			}
+			quantity = quantityText.toDecimal();
+			rate = rateText.toDecimal();
+			if(quantity <= 0 || rate < 0)
+			{
+				result.put("status","error");
+				result.put("message","Quote quantities must be greater than zero and prices cannot be negative.");
+				return result;
+			}
+			// Read the selected item directly from Books so every quote line uses
+			// the complete saved Books description. No character limit is applied.
+			itemDetailParams = Map();
+			itemDetailParams.put("organization_id",organizationId);
+			itemDetailResponse = invokeurl
+			[
+				url :"https://www.zohoapis.com/books/v3/items/" + lineItemId
+				type :GET
+				parameters:itemDetailParams
+				connection:"zoho_books_connection"
+			];
+			if(itemDetailResponse.get("code") == 0 && itemDetailResponse.get("item") != null)
+			{
+				booksItemName = ifnull(itemDetailResponse.get("item").get("name"),"").toString();
+				if(edrLine && booksItemName.toLowerCase().contains("epdr"))
+				{
+					result.put("status","error");
+					result.put("message","EDR is still mapped to an EPDR Books item (" + booksItemName + "). Correct the EDR setup Item ID before creating this quote.");
+					return result;
+				}
+				booksDescription = ifnull(itemDetailResponse.get("item").get("description"),"").toString();
+				if(booksDescription.trim() != "")
+				{
+					description = booksDescription;
+				}
+			}
+			booksLine = Map();
+			booksLine.put("item_id",lineItemId);
+			booksLine.put("quantity",quantity);
+			booksLine.put("rate",rate);
+			// Keep the full Books description for services, setup and hardware.
+			if(description != "")
+			{
+				booksLine.put("description",description);
+			}
+			booksLines.add(booksLine);
+		}
+		if(quoteLabel == "")
+		{
+			quoteLabel = "Quote package";
+			if(quoteMode.equalsIgnoreCase("phase"))
+			{
+				quoteLabel = "Phase " + phase;
+			}
+		}
+		if(referenceNumber == "")
+		{
+			referenceNumber = quoteLabel + " - " + customerName;
+		}
+		estimateData = Map();
+		estimateData.put("customer_id",customerId);
+		estimateData.put("reference_number",referenceNumber);
+		if(salespersonName != "")
+		{
+			estimateData.put("salesperson_name",salespersonName);
+		}
+		estimateData.put("line_items",booksLines);
+		if(discountValueText != "" && discountValueText.toDecimal() > 0)
+		{
+			discountValue = discountValueText.toDecimal();
+			if(discountMode.equalsIgnoreCase("percent") && discountValue > 100)
+			{
+				result.put("status","error");
+				result.put("message","Percentage discount cannot exceed 100%.");
+				return result;
+			}
+			estimateData.put("discount_type","entity_level");
+			estimateData.put("is_discount_before_tax",true);
+			if(discountMode.equalsIgnoreCase("percent"))
+			{
+				estimateData.put("discount",discountValueText + "%");
+			}
+			else
+			{
+				estimateData.put("discount",discountValue);
+			}
+		}
+		headers = Map();
+		headers.put("content-type","application/json");
+		booksResponse = invokeurl
+		[
+			url :"https://www.zohoapis.com/books/v3/estimates?organization_id=" + organizationId
+			type :POST
+			parameters:estimateData.toString()
+			headers:headers
+			connection:"zoho_books_connection"
+		];
+		if(booksResponse.get("code") == 0)
+		{
+			estimate = booksResponse.get("estimate");
+			estimateId = estimate.get("estimate_id").toString();
+			estimateNumber = ifnull(estimate.get("estimate_number"),"Draft quote").toString();
+			result.put("status","success");
+			result.put("message",estimateNumber + " was created in draft status for " + quoteLabel + ".");
+			result.put("customerId",customerId);
+			result.put("estimateId",estimateId);
+			result.put("estimateNumber",estimateNumber);
+			quoteUrl = "https://books.mcgcomputer.com.au/app/" + organizationId + "#/quotes/" + estimateId;
+			result.put("editUrl",quoteUrl);
+			result.put("viewUrl",quoteUrl);
+			return result;
+		}
+		result.put("status","error");
+		result.put("message","Zoho Books quote creation failed: " + ifnull(booksResponse.get("message"),booksResponse.toString()));
+		return result;
+	}	catch (error)
+	{
+		result.put("status","error");
+		result.put("message","Quote workflow failed: " + error.toString());
+	}
+	return result;
+}

@@ -1,0 +1,141 @@
+map CreateSLACustomer(string request_data)
+{
+	result = Map();
+	organizationId = "669587761";
+	crmAccountId = "";
+	crmContactId = "";
+	try 
+	{
+		requestMap = request_data.toMap();
+		companyName = ifnull(requestMap.get("companyName"),"").toString().trim();
+		firstName = ifnull(requestMap.get("firstName"),"").toString().trim();
+		lastName = ifnull(requestMap.get("lastName"),"").toString().trim();
+		email = ifnull(requestMap.get("email"),"").toString().trim();
+		mobile = ifnull(requestMap.get("mobile"),"").toString().trim();
+		if(companyName == "" || lastName == "" || email == "" || mobile == "")
+		{
+			result.put("status","error");
+			result.put("message","Company name, contact last name, email and mobile are required.");
+			return result;
+		}
+		if(companyName.contains(":") || companyName.contains("(") || companyName.contains(")") || companyName.contains("\\"))
+		{
+			result.put("status","error");
+			result.put("message","This company name needs a manual duplicate check in CRM before creation. No record was made.");
+			return result;
+		}
+		// Never assume that the Analytics customer cache is current.
+		existingAccounts = zoho.crm.searchRecords("Accounts","(Account_Name:equals:" + companyName + ")");
+		if(existingAccounts == null || existingAccounts.toString().startsWith("{"))
+		{
+			result.put("status","error");
+			result.put("message","Could not check CRM for an existing company. Nothing was created; review the CRM connection and search response.");
+			return result;
+		}
+		for each  existingAccount in existingAccounts
+		{
+			if(ifnull(existingAccount.get("Account_Name"),"").toString().trim().equalsIgnoreCase(companyName))
+			{
+				result.put("status","duplicate");
+				result.put("crmAccountId",ifnull(existingAccount.get("id"),"").toString());
+				result.put("message","A CRM company with this name already exists. Select it from the customer list or review it in CRM; no new record was made.");
+				return result;
+			}
+		}
+		accountData = Map();
+		accountData.put("Account_Name",companyName);
+		accountResult = zoho.crm.createRecord("Accounts",accountData);
+		crmAccountId = ifnull(accountResult.get("id"),"").toString();
+		if(crmAccountId == "")
+		{
+			result.put("status","error");
+			result.put("message","CRM company creation failed: " + accountResult.toString());
+			return result;
+		}
+		contactData = Map();
+		contactData.put("Account_Name",crmAccountId);
+		if(firstName != "")
+		{
+			contactData.put("First_Name",firstName);
+		}
+		contactData.put("Last_Name",lastName);
+		contactData.put("Email",email);
+		contactData.put("Mobile",mobile);
+		contactResult = zoho.crm.createRecord("Contacts",contactData);
+		crmContactId = ifnull(contactResult.get("id"),"").toString();
+		if(crmContactId == "")
+		{
+			result.put("status","partial");
+			result.put("crmAccountId",crmAccountId);
+			result.put("message","CRM company " + crmAccountId + " was created, but its contact failed. Check CRM before retrying. " + contactResult.toString());
+			return result;
+		}
+		// This import needs CRM Accounts sync configured in the target Books organization.
+		// It preserves the CRM Account link for the existing quote customer lookup.
+		importResponse = invokeurl
+		[
+			url :"https://www.zohoapis.com/books/v3/crm/account/" + crmAccountId + "/import?organization_id=" + organizationId
+			type :POST
+			connection:"zoho_books_connection"
+		];
+		booksCustomerId = "";
+		if(importResponse.get("code") == 0 && importResponse.get("data") != null)
+		{
+			booksCustomerId = ifnull(importResponse.get("data").get("contact_id"),"").toString();
+		}
+		if(booksCustomerId == "")
+		{
+			// CRM-Books auto-sync may already have imported this Account.
+			lookupParams = Map();
+			lookupParams.put("organization_id",organizationId);
+			lookupParams.put("zcrm_account_id",crmAccountId);
+			lookupResponse = invokeurl
+			[
+				url :"https://www.zohoapis.com/books/v3/contacts"
+				type :GET
+				parameters:lookupParams
+				connection:"zoho_books_connection"
+			];
+			if(lookupResponse.get("code") == 0 && lookupResponse.get("contacts") != null && !lookupResponse.get("contacts").isEmpty())
+			{
+				booksCustomerId = ifnull(lookupResponse.get("contacts").get(0).get("contact_id"),"").toString();
+			}
+		}
+		if(booksCustomerId == "")
+		{
+			result.put("status","partial");
+			result.put("crmAccountId",crmAccountId);
+			result.put("crmContactId",crmContactId);
+			result.put("message","CRM company " + crmAccountId + " and contact " + crmContactId + " were created, but Books import failed. Check the Books CRM Accounts sync and import this CRM account before quoting. " + importResponse.toString());
+			return result;
+		}
+		result.put("status","success");
+		result.put("message","Customer created in CRM and imported into Books.");
+		result.put("customerName",companyName);
+		result.put("crmAccountId",crmAccountId);
+		result.put("crmContactId",crmContactId);
+		result.put("booksCustomerId",booksCustomerId);
+		return result;
+	}	catch (error)
+	{
+		if(crmAccountId == "")
+		{
+			result.put("status","error");
+		}
+		else
+		{
+			result.put("status","partial");
+		}
+		if(crmAccountId != "")
+		{
+			result.put("crmAccountId",crmAccountId);
+		}
+		if(crmContactId != "")
+		{
+			result.put("crmContactId",crmContactId);
+		}
+		result.put("message","Customer creation did not finish. Check CRM and Books before trying again: " + error.toString());
+		return result;
+	}
+	return result;
+}

@@ -1,0 +1,89 @@
+map CheckCreatedWorkStatus(string request_data)
+{
+	result = Map();
+	checks = List();
+	result.put("status","error");
+	try 
+	{
+		request = request_data.toMap();
+		outputs = request.get("outputs");
+		if(outputs == null || outputs.size() > 10)
+		{
+			result.put("message","Send up to 10 Created Work outputs per check.");
+			return result;
+		}
+		for each  output in outputs
+		{
+			check = Map();
+			key = ifnull(output.get("key"),"").toString();
+			type = ifnull(output.get("type"),"").toString();
+			externalId = ifnull(output.get("externalId"),"").toString();
+			check.put("key",key);
+			check.put("status","unknown");
+			try 
+			{
+				if(type == "Quote" && externalId.matches("[0-9]{8,25}"))
+				{
+					booksResponse = invokeurl
+					[
+						url :"https://www.zohoapis.com/books/v3/estimates/" + externalId + "?organization_id=669587761"
+						type :GET
+						detailed:true
+						connection:"zoho_books_connection"
+					];
+					booksCode = booksResponse.get("responseCode");
+					if(booksCode == 404)
+					{
+						check.put("status","missing");
+					}
+					else
+					{
+						booksBody = booksResponse.get("responseText").toString().toMap();
+						if(booksCode == 200 && ifnull(booksBody.get("code"),-1).toString() == "0" && booksBody.get("estimate") != null && ifnull(booksBody.get("estimate").get("estimate_id"),"").toString() == externalId)
+						{
+							check.put("status","active");
+						}
+						else if(ifnull(booksBody.get("code"),-1).toString() == "1002" && ifnull(booksBody.get("message"),"").toString().toLowerCase().contains("does not exist"))
+						{
+							check.put("status","missing");
+						}
+					}
+				}
+				else if(type == "Presentation" && externalId.matches("[a-zA-Z0-9]{16,80}"))
+				{
+					showResponse = invokeurl
+					[
+						url :"https://show.zoho.com/api/v1/presentation/" + externalId + "/meta"
+						type :GET
+						detailed:true
+						connection:"zoho_show_connection"
+					];
+					showCode = showResponse.get("responseCode");
+					if(showCode == 200)
+					{
+						showBody = showResponse.get("responseText").toString().toMap();
+						if(showBody.get("data") != null && ifnull(showBody.get("status"),"") == "success")
+						{
+							check.put("status","active");
+						}
+					}
+					else if(showCode == 404)
+					{
+						check.put("status","missing");
+					}
+				}
+			}			catch (lookupError)
+			{
+				// Connection, permission and timeout errors are never treated as deletion.
+				check.put("status","unknown");
+			}
+			checks.add(check);
+		}
+		result.put("status","success");
+		result.put("checks",checks);
+	}	catch (requestError)
+	{
+		result.put("message","Could not validate the Created Work status request.");
+	}
+	return result;
+}
