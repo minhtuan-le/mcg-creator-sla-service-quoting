@@ -3,9 +3,11 @@
 
     const CUSTOM_API_NAME = "get_sla_analytics_data";
     const QUOTE_API_NAME = "create_sla_draft_quote";
+    const NO_RECURRING_SLA_FILTER = "NO SLA | NO RECURRING INV";
     const DEFAULT_DELIVERY_ITEM_ID = "1417654000008249014";
     const BOOKS_EDR_ITEM_ID = "1417654000018767777";
     const WORKFLOW_QUERY_PARAM = "workflow_data";
+    const LEGACY_PROPOSAL_QUERY_PARAM = "proposal_data";
     const APP_ROOT_URL = "https://creatorapp.zoho.com/michaella2/environment/development/recurring-invoice-report/";
     const CRM_APP_ROOT_URL = "https://creatorapp.zoho.com/michaella2/crm-homepage/";
     const APP_QUOTE_PAGE_LINK = "Quote_Finalisation";
@@ -33,6 +35,7 @@
 
     const elements = {
         banner: document.getElementById("connectionBanner"),
+        slaType: document.getElementById("slaTypeFilter"),
         customer: document.getElementById("customerFilter"),
         copy: document.getElementById("copyPowerPointButton"),
         copyRisk: document.getElementById("copyRiskButton"),
@@ -42,6 +45,8 @@
         loadingState: document.getElementById("initialLoadingState"),
         content: document.getElementById("reportContent"),
         empty: document.getElementById("emptyState"),
+        emptyTitle: document.getElementById("emptyTitle"),
+        emptyMessage: document.getElementById("emptyMessage"),
         report: document.getElementById("generatedReport"),
         client: document.getElementById("clientName"),
         footerClient: document.getElementById("footerClient"),
@@ -134,7 +139,9 @@
         let encoded = "";
         try {
             if (window.ZOHO && ZOHO.CREATOR && ZOHO.CREATOR.UTIL && typeof ZOHO.CREATOR.UTIL.getQueryParams === "function") {
-                encoded = findQueryParameter(await ZOHO.CREATOR.UTIL.getQueryParams(), WORKFLOW_QUERY_PARAM, 0);
+                const params = await ZOHO.CREATOR.UTIL.getQueryParams();
+                encoded = findQueryParameter(params, WORKFLOW_QUERY_PARAM, 0) ||
+                    findQueryParameter(params, LEGACY_PROPOSAL_QUERY_PARAM, 0);
             }
         } catch (error) { /* The page can be opened directly. */ }
         if (!encoded) {
@@ -144,7 +151,8 @@
             try { locations.push(window.top.location.href); } catch (error) { /* Restricted frame. */ }
             try { locations.push(document.referrer); } catch (error) { /* Referrer may be blank. */ }
             for (const location of locations) {
-                encoded = parameterFromUrl(location, WORKFLOW_QUERY_PARAM);
+                encoded = parameterFromUrl(location, WORKFLOW_QUERY_PARAM) ||
+                    parameterFromUrl(location, LEGACY_PROPOSAL_QUERY_PARAM);
                 if (encoded) break;
             }
         }
@@ -217,6 +225,13 @@
         return text(value).toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "");
     }
 
+    function invoiceCustomerMatches(invoiceName, selectedCustomer) {
+        const selected = text(selectedCustomer);
+        const statusSuffix = selected.match(/^(.*-\s*\d{2})\s+ACCOUNT ON HOLD$/i);
+        return normalize(invoiceName) === normalize(selected) ||
+            Boolean(statusSuffix && normalize(invoiceName) === normalize(statusSuffix[1]));
+    }
+
     function isEdrService(service, businessName) {
         return ["edr", "kedr", "kaseyawatchguardedr"].includes(normalize(service)) ||
             normalize(businessName) === "kaseyawatchguardedr";
@@ -262,6 +277,41 @@
         return state.customerRows.find(function (row) {
             return normalize(crmCustomerName(row)) === selected;
         }) || null;
+    }
+
+    function slaTypeCode(value) {
+        const match = text(value).match(/^SLA\s*-\s*(0[1-5])\b/i);
+        return match ? match[1] : "";
+    }
+
+    function customerSlaCode(customer) {
+        const match = text(customer).match(/-\s*(0[1-5])\s*$/);
+        return match ? match[1] : "";
+    }
+
+    function orderedSlaTypes(rows) {
+        const names = new Set(rows.map(function (row) { return text(row["SLA Type"]); }).filter(Boolean));
+        return Array.from(names).sort(function (left, right) {
+            const leftCode = slaTypeCode(left);
+            const rightCode = slaTypeCode(right);
+            if (leftCode && rightCode && leftCode !== rightCode) return Number(leftCode) - Number(rightCode);
+            if (leftCode !== rightCode) return leftCode ? -1 : 1;
+            return collator.compare(left, right);
+        });
+    }
+
+    function customerHasRecurringInvoice(customer) {
+        return state.invoiceRows.some(function (row) { return invoiceCustomerMatches(customerName(row), customer); });
+    }
+
+    function availableCustomerNames() {
+        const names = Array.from(new Set(state.customerRows.map(crmCustomerName).filter(Boolean))).sort(collator.compare);
+        const slaType = elements.slaType.value;
+        if (slaType === NO_RECURRING_SLA_FILTER) {
+            return names.filter(function (customer) { return !customerHasRecurringInvoice(customer); });
+        }
+        const code = slaTypeCode(slaType);
+        return code ? names.filter(function (customer) { return customerSlaCode(customer) === code; }) : names;
     }
 
     function itemId(row) {
@@ -388,8 +438,12 @@
     function selectedInvoiceRows() {
         const selected = normalize(elements.customer.value);
         if (!selected) return [];
+        const slaType = elements.slaType.value;
+        if (slaType === NO_RECURRING_SLA_FILTER) return [];
         return state.invoiceRows.filter(function (row) {
-            return normalize(customerName(row)) === selected && (serviceName(row) || itemId(row));
+            return invoiceCustomerMatches(customerName(row), elements.customer.value) &&
+                (!slaType || text(row["SLA Type"]) === slaType) &&
+                (serviceName(row) || itemId(row));
         });
     }
 
@@ -1199,6 +1253,11 @@
     function renderReport() {
         const customer = elements.customer.value;
         if (!customer) {
+            const noMatches = Boolean(elements.slaType.value) && elements.customer.options.length <= 1;
+            elements.emptyTitle.textContent = noMatches ? "No customers match " + elements.slaType.value : "Select a customer";
+            elements.emptyMessage.textContent = noMatches
+                ? "Choose another SLA type or All SLA types."
+                : "The existing-services report and risk analysis will appear here.";
             elements.empty.hidden = false;
             elements.report.hidden = true;
             elements.content.classList.add("is-empty");
@@ -1277,8 +1336,9 @@
         schedulePresentationSave();
     }
 
-    function replaceCustomerOptions(rows) {
-        const customers = Array.from(new Set(rows.map(crmCustomerName).filter(Boolean))).sort(collator.compare);
+    function replaceCustomerOptions() {
+        const previousCustomer = elements.customer.value;
+        const customers = availableCustomerNames();
         elements.customer.replaceChildren();
         const placeholder = document.createElement("option");
         placeholder.value = "";
@@ -1290,7 +1350,25 @@
             option.textContent = customer;
             elements.customer.appendChild(option);
         });
+        if (customers.includes(previousCustomer)) elements.customer.value = previousCustomer;
         elements.customer.disabled = false;
+    }
+
+    function replaceSlaTypeOptions(rows) {
+        const slaTypes = orderedSlaTypes(rows);
+        if (!slaTypes.includes(NO_RECURRING_SLA_FILTER)) slaTypes.push(NO_RECURRING_SLA_FILTER);
+        elements.slaType.replaceChildren();
+        const all = document.createElement("option");
+        all.value = "";
+        all.textContent = "All SLA types";
+        elements.slaType.appendChild(all);
+        slaTypes.forEach(function (slaType) {
+            const option = document.createElement("option");
+            option.value = slaType;
+            option.textContent = slaType;
+            elements.slaType.appendChild(option);
+        });
+        elements.slaType.disabled = false;
     }
 
     let bannerHideTimer = null;
@@ -1317,13 +1395,20 @@
         const catalogueRows = extractArray(payload, "catalogueRows");
         const customerRows = extractArray(payload, "customerRows");
         const activeCustomerRows = customerRows.filter(function (row) { return !crmCustomerIsInactive(row); });
+        const carriedCustomer = state.incoming && text(state.incoming.customerName)
+            ? state.incoming : window.MCGQuoteWorkspace && window.MCGQuoteWorkspace.current();
+        if (carriedCustomer && text(carriedCustomer.crmAccountId) && text(carriedCustomer.customerName) &&
+            !activeCustomerRows.some(function (row) { return normalize(crmCustomerName(row)) === normalize(carriedCustomer.customerName); })) {
+            activeCustomerRows.push({ "Account Name": carriedCustomer.customerName, "CRM Account ID": carriedCustomer.crmAccountId });
+        }
 
         if (invoiceRows.length && activeCustomerRows.length) {
             setInitialLoading(false);
             state.invoiceRows = invoiceRows;
             state.catalogueRows = catalogueRows;
             state.customerRows = activeCustomerRows;
-            replaceCustomerOptions(activeCustomerRows);
+            replaceSlaTypeOptions(invoiceRows);
+            replaceCustomerOptions();
             state.ready = true;
             const saved = window.MCGQuoteWorkspace && window.MCGQuoteWorkspace.current();
             const candidate = state.incoming && text(state.incoming.customerName)
@@ -1391,6 +1476,17 @@
                 renderReport();
             });
     }
+
+    elements.slaType.addEventListener("change", function () {
+        const previousCustomer = elements.customer.value;
+        replaceCustomerOptions();
+        if (previousCustomer !== elements.customer.value) {
+            state.serviceEdits.clear();
+            state.serviceOrder = [];
+            state.hardware = [];
+        }
+        renderReport();
+    });
 
     elements.customer.addEventListener("change", function () {
         state.serviceEdits.clear();
@@ -1533,6 +1629,12 @@
             window.MCGQuoteWorkspace.save(incoming.customerName, update);
         }
         if (state.ready && incoming && text(incoming.customerName)) {
+            if (text(incoming.crmAccountId) && !state.customerRows.some(function (row) {
+                return normalize(crmCustomerName(row)) === normalize(incoming.customerName);
+            })) {
+                state.customerRows.push({ "Account Name": incoming.customerName, "CRM Account ID": incoming.crmAccountId });
+                replaceCustomerOptions();
+            }
             const available = Array.from(elements.customer.options).map(function (option) { return option.value; });
             if (available.includes(incoming.customerName)) {
                 elements.customer.value = incoming.customerName;

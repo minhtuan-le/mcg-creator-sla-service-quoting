@@ -125,7 +125,7 @@ button, select { font: inherit; }
 .view-badge { align-self: start; padding: 7px 11px; border: 1px solid rgba(255,255,255,.3); border-radius: 99px; background: rgba(255,255,255,.1); font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
 
 .control-panel {
-    display: grid; grid-template-columns: minmax(280px, 650px) auto; align-items: end; justify-content: space-between; gap: 18px;
+    display: grid; grid-template-columns: minmax(180px, 280px) minmax(280px, 1fr) auto; align-items: end; justify-content: space-between; gap: 18px;
     margin-bottom: 18px; padding: 18px 20px; border: 1px solid var(--line); border-radius: 12px; background: #fff;
 }
 .field-wrap label { display: block; margin-bottom: 7px; color: var(--navy); font-size: 13px; font-weight: 800; }
@@ -133,6 +133,7 @@ button, select { font: inherit; }
 .field-wrap select:focus { border-color: var(--blue); outline: 3px solid rgba(41,127,167,.13); }
 .field-wrap select:disabled { color: #8a9aa5; cursor: wait; }
 .field-help { display: block; margin-top: 6px; color: var(--muted); font-size: 11px; }
+.control-panel > .field-wrap:first-child { align-self: start; }
 .control-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 9px; }
 .copy-button, .print-button { min-height: 44px; padding: 0 17px; border-radius: 8px; cursor: pointer; font-weight: 750; }
 .copy-button { border: 1px solid #9cb4c1; background: #fff; color: var(--navy); }
@@ -250,6 +251,11 @@ button, select { font: inherit; }
     .report-header { grid-template-columns: 150px minmax(0, 1fr); }
     .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .report-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 1000px) and (min-width: 701px) {
+    .control-panel { grid-template-columns: minmax(170px, 1fr) minmax(260px, 2fr); }
+    .control-actions { grid-column: 1 / -1; }
 }
 
 @media (max-width: 700px) {

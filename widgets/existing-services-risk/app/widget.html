@@ -28,6 +28,12 @@
 
         <section class="control-panel sticky-customer-context" aria-label="Report controls">
             <div class="field-wrap">
+                <label for="slaTypeFilter">SLA Type</label>
+                <select id="slaTypeFilter" disabled>
+                    <option value="">All SLA types</option>
+                </select>
+            </div>
+            <div class="field-wrap">
                 <label for="customerFilter">Customer</label>
                 <select id="customerFilter" disabled>
                     <option value="">Loading customers…</option>
@@ -82,8 +88,8 @@
         <section id="reportContent" class="report-content is-empty" aria-live="polite">
             <div id="emptyState" class="empty-state" hidden>
                 <div class="empty-icon" aria-hidden="true">◎</div>
-                <h2>Select a customer</h2>
-                <p>The existing-services report and risk analysis will appear here.</p>
+                <h2 id="emptyTitle">Select a customer</h2>
+                <p id="emptyMessage">The existing-services report and risk analysis will appear here.</p>
             </div>
 
             <div id="generatedReport" class="generated-report" hidden>
