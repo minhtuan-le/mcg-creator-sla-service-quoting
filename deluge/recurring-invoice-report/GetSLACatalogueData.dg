@@ -91,7 +91,7 @@ map GetSLACatalogueData()
 				type :GET
 				parameters:itemParams
 				headers:headersMap
-				connection:"zoho_analytics_connection"
+				connection:"zoho_analytics_connection1"
 			];
 			if(itemsResponse == null || itemsResponse.get("data") == null)
 			{

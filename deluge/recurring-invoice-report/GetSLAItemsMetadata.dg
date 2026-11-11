@@ -13,7 +13,7 @@ map GetSLAItemsMetadata()
 			url :"https://analyticsapi.zoho.com/restapi/v2/workspaces/" + workspaceId + "/views/" + itemsViewId + "/metadata"
 			type :GET
 			headers:headersMap
-			connection:"zoho_analytics_connection"
+			connection:"zoho_analytics_connection1"
 		];
 		result.put("status","ready");
 		result.put("message","Items metadata loaded.");

@@ -15,7 +15,7 @@ map InspectSLAHelperTables()
 			url :"https://analyticsapi.zoho.com/restapi/v2/workspaces/" + workspaceId + "/views/1736024000008310024/metadata"
 			type :GET
 			headers:headersMap
-			connection:"zoho_analytics_connection"
+			connection:"zoho_analytics_connection1"
 		];
 		result.put("Display Item List Query",displayQueryResponse);
 	}	catch (e)
@@ -32,7 +32,7 @@ map InspectSLAHelperTables()
 			url :"https://analyticsapi.zoho.com/restapi/v2/workspaces/" + workspaceId + "/views/1736024000007804002/metadata"
 			type :GET
 			headers:headersMap
-			connection:"zoho_analytics_connection"
+			connection:"zoho_analytics_connection1"
 		];
 		result.put("Refine recurring item products",refineResponse);
 	}	catch (e)
@@ -49,7 +49,7 @@ map InspectSLAHelperTables()
 			url :"https://analyticsapi.zoho.com/restapi/v2/workspaces/" + workspaceId + "/views/1736024000007767278/metadata"
 			type :GET
 			headers:headersMap
-			connection:"zoho_analytics_connection"
+			connection:"zoho_analytics_connection1"
 		];
 		result.put("Recurring Item Display - SKU",skuResponse);
 	}	catch (e)
@@ -66,7 +66,7 @@ map InspectSLAHelperTables()
 			url :"https://analyticsapi.zoho.com/restapi/v2/workspaces/" + workspaceId + "/views/1736024000007767230/metadata"
 			type :GET
 			headers:headersMap
-			connection:"zoho_analytics_connection"
+			connection:"zoho_analytics_connection1"
 		];
 		result.put("SLA List",slaListResponse);
 	}	catch (e)

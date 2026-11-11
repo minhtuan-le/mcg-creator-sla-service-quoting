@@ -30,7 +30,7 @@ map GetSLAItemPricingData()
 			type :GET
 			parameters:paramsMap
 			headers:headersMap
-			connection:"zoho_analytics_connection"
+			connection:"zoho_analytics_connection1"
 		];
 		if(itemsResponse != null)
 		{
