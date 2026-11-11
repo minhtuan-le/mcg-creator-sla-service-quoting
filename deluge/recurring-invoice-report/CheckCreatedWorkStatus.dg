@@ -29,7 +29,7 @@ map CheckCreatedWorkStatus(string request_data)
 						url :"https://www.zohoapis.com/books/v3/estimates/" + externalId + "?organization_id=669587761"
 						type :GET
 						detailed:true
-						connection:"zoho_books_connection"
+						connection:"zoho_books_connection_admin"
 					];
 					booksCode = booksResponse.get("responseCode");
 					if(booksCode == 404)

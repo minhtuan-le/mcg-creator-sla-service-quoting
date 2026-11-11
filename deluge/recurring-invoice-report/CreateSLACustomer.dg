@@ -76,7 +76,7 @@ map CreateSLACustomer(string request_data)
 		[
 			url :"https://www.zohoapis.com/books/v3/crm/account/" + crmAccountId + "/import?organization_id=" + organizationId
 			type :POST
-			connection:"zoho_books_connection"
+			connection:"zoho_books_connection_admin"
 		];
 		booksCustomerId = "";
 		if(importResponse.get("code") == 0 && importResponse.get("data") != null)
@@ -94,7 +94,7 @@ map CreateSLACustomer(string request_data)
 				url :"https://www.zohoapis.com/books/v3/contacts"
 				type :GET
 				parameters:lookupParams
-				connection:"zoho_books_connection"
+				connection:"zoho_books_connection_admin"
 			];
 			if(lookupResponse.get("code") == 0 && lookupResponse.get("contacts") != null && !lookupResponse.get("contacts").isEmpty())
 			{
