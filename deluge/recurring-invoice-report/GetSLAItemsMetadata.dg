@@ -1,0 +1,28 @@
+map GetSLAItemsMetadata()
+{
+	orgId = "669589020";
+	workspaceId = "1736024000007583918";
+	itemsViewId = "1736024000007585017";
+	result = Map();
+	headersMap = Map();
+	headersMap.put("ZANALYTICS-ORGID",orgId);
+	try 
+	{
+		response = invokeurl
+		[
+			url :"https://analyticsapi.zoho.com/restapi/v2/workspaces/" + workspaceId + "/views/" + itemsViewId + "/metadata"
+			type :GET
+			headers:headersMap
+			connection:"zoho_analytics_connection"
+		];
+		result.put("status","ready");
+		result.put("message","Items metadata loaded.");
+		result.put("metadata",response);
+	}	catch (e)
+	{
+		result.put("status","error");
+		result.put("message","Could not load Items metadata.");
+		result.put("details",e.toString());
+	}
+	return result;
+}

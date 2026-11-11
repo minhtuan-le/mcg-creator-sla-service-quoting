@@ -1,0 +1,227 @@
+map GetSLACatalogueData()
+{
+	orgId = "669589020";
+	workspaceId = "1736024000007583918";
+	catalogueViewId = "1736024000007767180";
+	result = Map();
+	result.put("status","pending");
+	result.put("message","Loading SLA catalogue.");
+	headersMap = Map();
+	headersMap.put("ZANALYTICS-ORGID",orgId);
+	exportConfig = Map();
+	exportConfig.put("responseFormat","json");
+	exportConfig.put("keyValueFormat",true);
+	paramsMap = Map();
+	paramsMap.put("CONFIG",exportConfig.toString());
+	try 
+	{
+		catalogueResponse = invokeurl
+		[
+			url :"https://analyticsapi.zoho.com/restapi/v2/workspaces/" + workspaceId + "/views/" + catalogueViewId + "/data"
+			type :GET
+			parameters:paramsMap
+			headers:headersMap
+			connection:"zoho_analytics_connection1"
+		];
+		if(catalogueResponse == null || catalogueResponse.get("data") == null)
+		{
+			result.put("status","error");
+			result.put("message","SLA catalogue returned no data.");
+		}
+		else
+		{
+			catalogueRows = catalogueResponse.get("data");
+			// Fetch only the Books Items referenced by this SLA catalogue.
+			// Exporting and iterating every Books Item exceeds Creator's statement limit.
+			itemIdCriteriaValues = "";
+			seenItemIds = Map();
+			for each  catalogueRow in catalogueRows
+			{
+				monthlyId = ifnull(catalogueRow.get("Item ID"),"").toString().trim();
+				if(monthlyId == "")
+				{
+					monthlyId = ifnull(catalogueRow.get("Item_ID"),"").toString().trim();
+				}
+				if(monthlyId == "")
+				{
+					monthlyId = ifnull(catalogueRow.get("Books Item ID"),"").toString().trim();
+				}
+				setupIdForFilter = ifnull(catalogueRow.get("Setup ID"),"").toString().trim();
+				if(monthlyId != "" && !seenItemIds.containKey(monthlyId))
+				{
+					if(itemIdCriteriaValues != "")
+					{
+						itemIdCriteriaValues = itemIdCriteriaValues + ",";
+					}
+					itemIdCriteriaValues = itemIdCriteriaValues + "'" + monthlyId + "'";
+					seenItemIds.put(monthlyId,true);
+				}
+				if(setupIdForFilter != "" && !seenItemIds.containKey(setupIdForFilter))
+				{
+					if(itemIdCriteriaValues != "")
+					{
+						itemIdCriteriaValues = itemIdCriteriaValues + ",";
+					}
+					itemIdCriteriaValues = itemIdCriteriaValues + "'" + setupIdForFilter + "'";
+					seenItemIds.put(setupIdForFilter,true);
+				}
+			}
+			if(itemIdCriteriaValues == "")
+			{
+				result.put("status","error");
+				result.put("message","SLA catalogue has no Books Item IDs to price.");
+				return result;
+			}
+			itemExportConfig = Map();
+			itemExportConfig.put("responseFormat","json");
+			itemExportConfig.put("keyValueFormat",true);
+			itemExportConfig.put("criteria","\"Item ID\" IN (" + itemIdCriteriaValues + ")");
+			selectedItemColumns = List();
+			selectedItemColumns.add("Item ID");
+			selectedItemColumns.add("Item Name");
+			selectedItemColumns.add("Sales Price");
+			selectedItemColumns.add("SKU");
+			selectedItemColumns.add("Status");
+			itemExportConfig.put("selectedColumns",selectedItemColumns);
+			itemParams = Map();
+			itemParams.put("CONFIG",itemExportConfig.toString());
+			itemsResponse = invokeurl
+			[
+				url :"https://analyticsapi.zoho.com/restapi/v2/workspaces/" + workspaceId + "/views/1736024000007585017/data"
+				type :GET
+				parameters:itemParams
+				headers:headersMap
+				connection:"zoho_analytics_connection"
+			];
+			if(itemsResponse == null || itemsResponse.get("data") == null)
+			{
+				result.put("status","error");
+				result.put("message","Filtered SLA item pricing was unavailable.");
+				result.put("details",ifnull(itemsResponse,"").toString());
+			}
+			else
+			{
+				itemRows = itemsResponse.get("data");
+				priceByItemId = Map();
+				itemByItemId = Map();
+				for each  item in itemRows
+				{
+					itemId = ifnull(item.get("Item ID"),"").toString().trim();
+					priceText = ifnull(item.get("Sales Price"),"").toString();
+					priceText = priceText.replaceAll("AUD","").replaceAll(",","").replaceAll(" ","").trim();
+					if(itemId != "")
+					{
+						itemByItemId.put(itemId,item);
+					}
+					if(itemId != "" && priceText != "")
+					{
+						priceByItemId.put(itemId,priceText.toDecimal());
+					}
+				}
+				matchedCount = 0;
+				setupMatchedCount = 0;
+				mappingIssues = List();
+				skuPriceRows = List();
+				for each  catalogueRow in catalogueRows
+				{
+					mappingError = "";
+					serviceName = ifnull(catalogueRow.get("Name"),"Unnamed service").toString();
+					billingMonthsText = ifnull(catalogueRow.get("Billing Months"),"1").toString().trim();
+					if(billingMonthsText == "")
+					{
+						billingMonthsText = "1";
+					}
+					billingMonths = billingMonthsText.toDecimal();
+					if(billingMonths <= 0)
+					{
+						billingMonths = 1;
+						mappingError = "Billing Months must be greater than zero.";
+					}
+					catalogueId = ifnull(catalogueRow.get("Item ID"),"").toString().trim();
+					if(catalogueId == "")
+					{
+						catalogueId = ifnull(catalogueRow.get("Item_ID"),"").toString().trim();
+					}
+					if(catalogueId == "")
+					{
+						catalogueId = ifnull(catalogueRow.get("Books Item ID"),"").toString().trim();
+					}
+					if(catalogueId != "" && priceByItemId.containKey(catalogueId))
+					{
+						catalogueRow.put("Books Sales Price",priceByItemId.get(catalogueId));
+						catalogueRow.put("Standard Price",priceByItemId.get(catalogueId) / billingMonths);
+						catalogueRow.put("Books Item Name",ifnull(itemByItemId.get(catalogueId).get("Item Name"),""));
+						catalogueRow.put("SKU",ifnull(itemByItemId.get(catalogueId).get("SKU"),""));
+						catalogueRow.put("Books Item Status",ifnull(itemByItemId.get(catalogueId).get("Status"),""));
+						matchedCount = matchedCount + 1;
+					}
+					else
+					{
+						catalogueRow.put("Standard Price","");
+						mappingError = "Monthly Books Item ID is missing or was not found in Items.";
+					}
+					setupId = ifnull(catalogueRow.get("Setup ID"),"").toString().trim();
+					if(setupId != "")
+					{
+						if(setupId == catalogueId)
+						{
+							catalogueRow.put("Setup Cost","");
+							mappingError = mappingError + " Monthly and setup Item IDs are the same.";
+						}
+						else if(priceByItemId.containKey(setupId))
+						{
+							catalogueRow.put("Setup Cost",priceByItemId.get(setupId));
+							catalogueRow.put("Books Setup Item Name",ifnull(itemByItemId.get(setupId).get("Item Name"),""));
+							catalogueRow.put("Setup SKU",ifnull(itemByItemId.get(setupId).get("SKU"),""));
+							catalogueRow.put("Books Setup Item Status",ifnull(itemByItemId.get(setupId).get("Status"),""));
+							setupMatchedCount = setupMatchedCount + 1;
+						}
+						else
+						{
+							catalogueRow.put("Setup Cost","");
+							mappingError = mappingError + " Setup Books Item ID was not found in Items.";
+						}
+					}
+					if(mappingError != "")
+					{
+						catalogueRow.put("Mapping Error",mappingError.trim());
+						mappingIssues.add(serviceName + ": " + mappingError.trim());
+					}
+					skuPriceRow = Map();
+					skuPriceRow.put("Service",serviceName);
+					skuPriceRow.put("Monthly Item ID",catalogueId);
+					skuPriceRow.put("Monthly SKU",ifnull(catalogueRow.get("SKU"),""));
+					skuPriceRow.put("Books Sales Price",ifnull(catalogueRow.get("Books Sales Price"),""));
+					skuPriceRow.put("Billing Months",billingMonths);
+					skuPriceRow.put("Monthly Unit Price",ifnull(catalogueRow.get("Standard Price"),""));
+					skuPriceRow.put("Setup Item ID",setupId);
+					skuPriceRow.put("Setup SKU",ifnull(catalogueRow.get("Setup SKU"),""));
+					skuPriceRow.put("Setup Price",ifnull(catalogueRow.get("Setup Cost"),""));
+					skuPriceRow.put("Mapping Error",mappingError.trim());
+					skuPriceRows.add(skuPriceRow);
+				}
+				if(matchedCount == 0)
+				{
+					result.put("status","error");
+					result.put("message","No catalogue Item IDs matched item pricing.");
+				}
+				else
+				{
+					result.put("status","ready");
+					result.put("message","SLA catalogue loaded with item prices.");
+					result.put("pricedRows",matchedCount);
+					result.put("setupPricedRows",setupMatchedCount);
+					result.put("mappingIssues",mappingIssues);
+					result.put("skuPriceRows",skuPriceRows);
+					result.put("catalogueRows",catalogueResponse);
+				}
+			}
+		}
+	}	catch (e)
+	{
+		result.put("status","error");
+		result.put("message","Could not load SLA catalogue pricing.");
+		result.put("details",e.toString());
+	}
+	return result;
+}

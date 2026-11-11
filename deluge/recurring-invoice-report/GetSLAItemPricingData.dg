@@ -1,0 +1,53 @@
+map GetSLAItemPricingData()
+{
+	orgId = "669589020";
+	workspaceId = "1736024000007583918";
+	itemsViewId = "1736024000007585017";
+	result = Map();
+	result.put("status","pending");
+	result.put("message","Loading SLA item pricing.");
+	headersMap = Map();
+	headersMap.put("ZANALYTICS-ORGID",orgId);
+	// Only retrieve the fields required by the SLA viewer.
+	selectedColumns = List();
+	selectedColumns.add("Item ID");
+	selectedColumns.add("Item Name");
+	selectedColumns.add("Status");
+	selectedColumns.add("Sales Price");
+	selectedColumns.add("Usage unit");
+	selectedColumns.add("SKU");
+	exportConfig = Map();
+	exportConfig.put("responseFormat","json");
+	exportConfig.put("keyValueFormat",true);
+	exportConfig.put("selectedColumns",selectedColumns);
+	paramsMap = Map();
+	paramsMap.put("CONFIG",exportConfig.toString());
+	try 
+	{
+		itemsResponse = invokeurl
+		[
+			url :"https://analyticsapi.zoho.com/restapi/v2/workspaces/" + workspaceId + "/views/" + itemsViewId + "/data"
+			type :GET
+			parameters:paramsMap
+			headers:headersMap
+			connection:"zoho_analytics_connection"
+		];
+		if(itemsResponse != null)
+		{
+			result.put("status","ready");
+			result.put("message","SLA item pricing loaded.");
+			result.put("itemRows",itemsResponse);
+		}
+		else
+		{
+			result.put("status","error");
+			result.put("message","Items table returned no data.");
+		}
+	}	catch (e)
+	{
+		result.put("status","error");
+		result.put("message","Could not load SLA item pricing.");
+		result.put("details",e.toString());
+	}
+	return result;
+}
