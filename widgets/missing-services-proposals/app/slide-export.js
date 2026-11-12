@@ -396,47 +396,93 @@
         ];
     }
 
-    function renderProposalPhases(model, includePrices) {
-        const created = createCanvas();
-        const context = created.context;
-        const rows = Array.isArray(model.rows) ? model.rows : [];
-        drawHeader(context, "Proposed Project Plan", "Recommended services organised by implementation phase.", model.customer);
-
+    function proposalPhaseLayout(rows, compact) {
         const phaseNumbers = Array.from(new Set(rows.map(function (row) { return Number(row.phaseNumber); })))
             .filter(Number.isFinite)
             .sort(function (a, b) { return a - b; });
+        const layout = {
+            compact: compact,
+            phaseNumbers: phaseNumbers,
+            phaseHeaderHeight: compact ? 26 : 32,
+            phaseHeaderGap: compact ? 5 : 6,
+            tableHeaderHeight: compact ? 32 : 50,
+            blockGap: compact ? 6 : 10,
+            minimumRowHeight: compact ? 20 : 22,
+            maximumRowHeight: compact ? 36 : 58
+        };
+        layout.phaseOverhead = phaseNumbers.length *
+            (layout.phaseHeaderHeight + layout.phaseHeaderGap + layout.tableHeaderHeight + layout.blockGap);
+        return layout;
+    }
+
+    function rowHeightFor(layout, rowCount, availableHeight) {
+        return Math.min(layout.maximumRowHeight, Math.floor((availableHeight - layout.phaseOverhead) / Math.max(1, rowCount)));
+    }
+
+    function renderProposalPhases(model, includePrices) {
+        const created = createCanvas();
+        const context = created.context;
+        const allRows = Array.isArray(model.rows) ? model.rows.slice() : [];
+        allRows.sort(function (a, b) { return Number(a.phaseNumber) - Number(b.phaseNumber); });
+        drawHeader(context, "Proposed Project Plan", "Recommended services organised by implementation phase.", model.customer);
+
         const availableHeight = 610;
-        const compact = phaseNumbers.length >= 5;
-        const phaseHeaderHeight = compact ? 26 : 32;
-        const phaseHeaderGap = compact ? 5 : 6;
-        const tableHeaderHeight = compact ? 32 : 50;
-        const blockGap = compact ? 6 : 10;
-        const phaseOverhead = phaseNumbers.length * (phaseHeaderHeight + phaseHeaderGap + tableHeaderHeight + blockGap);
-        const minimumRowHeight = compact ? 20 : 22;
-        const maximumRowHeight = compact ? 36 : 58;
-        const rowHeight = Math.max(minimumRowHeight, Math.min(maximumRowHeight, Math.floor((availableHeight - phaseOverhead) / Math.max(1, rows.length))));
+        const noteHeight = 24;
+        // Full-size text needs a 50 px row (14 px font, two lines). Below that, or
+        // with five or more phases, switch to the compact layout so text fits its
+        // row instead of being clipped.
+        let layout = proposalPhaseLayout(allRows, false);
+        if (layout.phaseNumbers.length >= 5 || rowHeightFor(layout, allRows.length, availableHeight) < 50) {
+            layout = proposalPhaseLayout(allRows, true);
+        }
+
+        // Everything stays on this one slide. If the rows cannot fit even at the
+        // minimum compact row height, show as many as fit and note the rest.
+        let rows = allRows;
+        while (layout.compact && rows.length > 1 &&
+            rowHeightFor(layout, rows.length, availableHeight - (rows.length < allRows.length ? noteHeight : 0)) < layout.minimumRowHeight) {
+            rows = rows.slice(0, -1);
+            layout = proposalPhaseLayout(rows, true);
+        }
+        const hiddenCount = allRows.length - rows.length;
+        const usableHeight = availableHeight - (hiddenCount ? noteHeight : 0);
+        const rowHeight = Math.max(layout.minimumRowHeight, rowHeightFor(layout, rows.length, usableHeight));
         const compactMaxLines = rowHeight >= 34 ? 2 : 1;
+        const compactPaddingY = compactMaxLines === 2 ? 4 : Math.max(3, Math.floor((rowHeight - 13) / 2));
         let y = 232;
 
-        phaseNumbers.forEach(function (phaseNumber) {
+        layout.phaseNumbers.forEach(function (phaseNumber) {
             const phaseRows = rows.filter(function (row) { return Number(row.phaseNumber) === phaseNumber; });
-            fillRounded(context, 60, y, 1480, phaseHeaderHeight, 8, "#cfe7f4", "#bad6e4");
+            fillRounded(context, 60, y, 1480, layout.phaseHeaderHeight, 8, "#cfe7f4", "#bad6e4");
             context.fillStyle = COLORS.navy;
-            font(context, compact ? 13 : 15, 800);
-            context.fillText("Phase " + phaseNumber, 72, y + (compact ? 18 : 22));
-            y += phaseHeaderHeight + phaseHeaderGap;
-            y = drawTable(context, phaseColumns(includePrices), phaseRows, 60, y, rowHeight, compact ? {
-                headerHeight: tableHeaderHeight,
+            font(context, layout.compact ? 13 : 15, 800);
+            context.fillText("Phase " + phaseNumber, 72, y + (layout.compact ? 18 : 22));
+            y += layout.phaseHeaderHeight + layout.phaseHeaderGap;
+            y = drawTable(context, phaseColumns(includePrices), phaseRows, 60, y, rowHeight, layout.compact ? {
+                headerHeight: layout.tableHeaderHeight,
                 headerFontSize: 11,
                 headerTextOffset: 21,
                 rowFontSize: 11,
-                rowPaddingY: rowHeight >= 34 ? 4 : 3,
+                rowPaddingY: compactPaddingY,
                 rowLineHeight: 14,
                 maxLines: compactMaxLines
-            } : null) + blockGap;
+            } : null) + layout.blockGap;
         });
 
-        if (!phaseNumbers.length) {
+        if (hiddenCount) {
+            const hiddenPhases = Array.from(new Set(allRows.slice(rows.length).map(function (row) { return Number(row.phaseNumber); })))
+                .filter(Number.isFinite);
+            context.fillStyle = COLORS.muted;
+            font(context, 13, 700);
+            context.fillText(
+                "+ " + hiddenCount + " more " + (hiddenCount === 1 ? "service" : "services") +
+                (hiddenPhases.length ? " in Phase " + hiddenPhases.join(", ") : "") + " (see quote)",
+                72,
+                y + 12
+            );
+        }
+
+        if (!layout.phaseNumbers.length) {
             context.fillStyle = COLORS.muted;
             font(context, 20, 700);
             context.fillText("No proposal phases selected.", 60, 275);
