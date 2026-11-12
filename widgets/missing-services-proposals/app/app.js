@@ -133,6 +133,13 @@
         return text(value).toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "");
     }
 
+    function invoiceCustomerMatches(invoiceName, selectedCustomer) {
+        const selected = text(selectedCustomer);
+        const statusSuffix = selected.match(/^(.*-\s*\d{2})\s+ACCOUNT ON HOLD$/i);
+        return normalize(invoiceName) === normalize(selected) ||
+            Boolean(statusSuffix && normalize(invoiceName) === normalize(statusSuffix[1]));
+    }
+
     function isEdrService(service, businessName) {
         return ["edr", "kedr", "kaseyawatchguardedr"].includes(normalize(service)) ||
             normalize(businessName) === "kaseyawatchguardedr";
@@ -332,7 +339,7 @@
     }
 
     function activeRowsForCustomer() {
-        return state.invoiceRows.filter(function (row) { return normalize(customerName(row)) === normalize(elements.customer.value); });
+        return state.invoiceRows.filter(function (row) { return invoiceCustomerMatches(customerName(row), elements.customer.value); });
     }
 
     function deriveMachineCount(activeRows) {
@@ -507,7 +514,12 @@
 
     function createNumberInput(row, property, options, onUpdate) {
         const input = document.createElement("input");
-        input.type = "number"; input.min = options.min; input.step = options.step; input.placeholder = options.placeholder; input.value = text(row.selection[property]);
+        input.type = "number"; input.min = options.min; input.step = options.step; input.placeholder = options.placeholder;
+        // Display the synced price without saving it as a manual override.
+        const catalogueValue = property === "customPrice" ? row.standardPrice :
+            property === "customSetup" ? row.standardSetup : null;
+        input.value = text(row.selection[property]) ||
+            (catalogueValue !== null && catalogueValue !== undefined ? String(catalogueValue) : "");
         input.setAttribute("aria-label", options.label + " for " + row.service);
         input.addEventListener("input", function () { row.selection[property] = input.value; onUpdate(); });
         return input;
@@ -635,6 +647,7 @@
         selectedRows().forEach(function (row) {
             if (!text(row.selection.itemId)) issues.push(row.service + ": service Item ID missing");
             if (!text(row.selection.setupItemId)) issues.push(row.service + ": setup Item ID missing");
+            if (text(row.selection.itemId) && text(row.selection.itemId) === text(row.selection.setupItemId)) issues.push(row.service + ": monthly and setup Books Item IDs are the same");
             if (numericOrNull(row.selection.quantity) === null || Number(row.selection.quantity) <= 0) issues.push(row.service + ": quantity missing");
             if (monthlyRate(row) === null) issues.push(row.service + ": monthly price missing");
             if (setupRate(row) === null) issues.push(row.service + ": setup price missing");
@@ -880,6 +893,10 @@
     }
 
     function replaceCustomerOptions() {
+        const carried = state.incoming && text(state.incoming.customerName) ? state.incoming : window.MCGQuoteWorkspace && window.MCGQuoteWorkspace.current();
+        if (carried && text(carried.crmAccountId) && text(carried.customerName) && !state.customerRows.some(function (row) { return normalize(crmCustomerName(row)) === normalize(carried.customerName); })) {
+            state.customerRows.push({ "Account Name": carried.customerName, "CRM Account ID": carried.crmAccountId });
+        }
         const customers = Array.from(new Set(state.customerRows.map(crmCustomerName).filter(Boolean))).sort(collator.compare);
         elements.customer.replaceChildren(); const placeholder = document.createElement("option"); placeholder.value = ""; placeholder.textContent = "Select a customer"; elements.customer.appendChild(placeholder);
         customers.forEach(function (customer) { const option = document.createElement("option"); option.value = customer; option.textContent = customer; elements.customer.appendChild(option); });
