@@ -3,6 +3,7 @@
 
     const WIDTH = 1600;
     const HEIGHT = 900;
+    const SCALE = 2;
     const COLORS = {
         navy: "#103b52",
         blue: "#2f80ed",
@@ -20,9 +21,12 @@
 
     function createCanvas() {
         const canvas = document.createElement("canvas");
-        canvas.width = WIDTH;
-        canvas.height = HEIGHT;
+        // Draw at SCALE x the layout size so text and lines stay sharp when
+        // Zoho Show or a full-screen display enlarges the slide image.
+        canvas.width = WIDTH * SCALE;
+        canvas.height = HEIGHT * SCALE;
         const context = canvas.getContext("2d");
+        context.setTransform(SCALE, 0, 0, SCALE, 0, 0);
         context.imageSmoothingEnabled = true;
         context.fillStyle = COLORS.pale;
         context.fillRect(0, 0, WIDTH, HEIGHT);
